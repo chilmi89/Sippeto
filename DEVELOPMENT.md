@@ -83,3 +83,18 @@ Dokumen ini berfungsi sebagai instruksi kerja dan panduan aturan bagi developer/
 - [ ] Tambahkan form data diri pemesan (Nama, Alamat, Jenis Pembayaran).
 - [ ] Terapkan validasi input dan deteksi bot Honeypot.
 - [ ] Buat secure redirect API ke WhatsApp yang menyusun pesan daftar belanjaan pelanggan secara otomatis dan mengirimkannya langsung ke nomor telepon tenant (`profiles.phone_number`).
+
+### FASE 5: INTEGRASI CHECKOUT SEMI-OTOMATIS & KONFIRMASI ADMIN
+- [ ] **Skema Database Pesanan (Orders):**
+  - [ ] Buat tabel `orders` di Supabase untuk menampung data pesanan masuk dari E-Catalog sebelum dikonfirmasi (kolom: id, profile_id, branch_id, reference_number, customer_name, customer_phone, customer_address, payment_method, total_price, status ['PENDING', 'SUCCESS', 'CANCELLED']).
+  - [ ] Buat tabel `order_items` untuk detail produk belanjaan (kolom: id, order_id, product_id, quantity, price).
+- [ ] **API Endpoint Simpan Pesanan:**
+  - [ ] Buat API Route `/api/store/checkout` untuk mencatat pesanan baru berstatus `PENDING` di database pada saat pembeli melakukan checkout dari etalase toko.
+- [ ] **Dashboard Kelola Pesanan & Auto-Record Keuangan:**
+  - [ ] Buat antarmuka Kelola Pesanan di rute `/backend/tenant/orders` untuk melihat daftar pesanan masuk yang sedang dikonsultasikan di WA.
+  - [ ] Implementasikan tombol aksi **"Konfirmasi Lunas"** yang memicu rangkaian otomasi:
+    - [ ] Mengubah status pesanan menjadi `SUCCESS`.
+    - [ ] Memotong stok fisik pada tabel `product_stocks` sesuai cabang yang melayani.
+    - [ ] Mencatat log mutasi stok bertipe `SALE` pada tabel `stock_mutations`.
+    - [ ] Membuat laporan keuangan masuk (`INCOME`) secara otomatis pada tabel `transaction_groups` dan `transaction_items` kategori penjualan produk.
+

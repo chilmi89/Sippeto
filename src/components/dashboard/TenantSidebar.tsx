@@ -32,7 +32,7 @@ const tenantNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/backend/tenant" },
   { icon: Package, label: "Kelola Produk", href: "/backend/tenant/products", permission: "kelola_produk" },
   { icon: Sliders, label: "Kelola Stok", href: "/backend/tenant/stocks", permission: "kelola_stok" },
-  { icon: Store, label: "Kelola Cabang", href: "/backend/tenant/branches" },
+  { icon: Store, label: "Kelola Cabang", href: "/backend/tenant/branches", permission: "kelola_cabang" },
   { icon: Receipt, label: "Catatan Transaksi", href: "/backend/tenant/transactions" },
   { icon: History, label: "Riwayat & Kelola", href: "/backend/tenant/transactions/history" },
   { 

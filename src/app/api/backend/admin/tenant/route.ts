@@ -70,21 +70,43 @@ export async function GET(req: Request) {
     }
 }
 
-// ─── 2. PATCH — Ubah status aktif / nonaktif tenant ──────────────────────────
-// Body: { id, is_active }
+// ─── 2. PATCH — Ubah status aktif / nonaktif tenant atau fitur cabang ─────────
+// Body: { id, is_active, branches_enabled }
 
 export async function PATCH(req: Request) {
     try {
-        const { id, is_active } = await req.json();
+        const { id, is_active, branches_enabled } = await req.json();
 
         if (!id) {
             return NextResponse.json({ error: "ID tenant wajib disertakan" }, { status: 400 });
         }
 
+        let dataToUpdate: any = {};
+        
+        if (is_active !== undefined) {
+            dataToUpdate.is_active = is_active;
+        }
+
+        if (branches_enabled !== undefined) {
+            const profile = await prisma.profiles.findUnique({
+                where: { id },
+                select: { metadata: true }
+            });
+            const meta = profile?.metadata ? (typeof profile.metadata === 'string' ? JSON.parse(profile.metadata) : profile.metadata) as Record<string, any> : {};
+            meta.branches_enabled = branches_enabled;
+            dataToUpdate.metadata = meta;
+        }
+
         const updated = await prisma.profiles.update({
             where: { id },
-            data: { is_active },
-            select: { id: true, full_name: true, business_name: true, is_active: true },
+            data: dataToUpdate,
+            select: { 
+                id: true, 
+                full_name: true, 
+                business_name: true, 
+                is_active: true,
+                metadata: true
+            },
         });
 
         return NextResponse.json(updated);
