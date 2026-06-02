@@ -335,7 +335,7 @@ const ProfileTenantPage = () => {
                                         />
                                     </div>
                                     <p className="text-[10px] text-zinc-400 font-medium ml-1">
-                                        Preview Link: <span className="text-emerald-500 font-semibold">{typeof window !== 'undefined' ? `${window.location.origin}/store/${editData.username || 'username-anda'}` : `/store/${editData.username || 'username-anda'}`}</span>
+                                        Preview Link: <span className="text-emerald-500 font-semibold break-all">{typeof window !== 'undefined' ? `${window.location.origin}/store/${editData.username || 'username-anda'}` : `/store/${editData.username || 'username-anda'}`}</span>
                                     </p>
                                 </div>
                             </div>

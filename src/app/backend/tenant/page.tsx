@@ -310,11 +310,11 @@ export default function TenantDashboard() {
         <div className="w-full">
           {profile?.username ? (
             <div className="bg-gradient-to-r from-emerald-500/[0.04] to-teal-500/[0.02] border border-emerald-500/20 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4 min-w-0 w-full md:w-auto">
                 <div className="p-3.5 bg-emerald-500/10 text-emerald-600 rounded-xl mt-1 md:mt-0 shrink-0">
                   <Store className="w-6 h-6" />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0 flex-1">
                   <h3 className="text-sm font-bold text-zinc-950 flex items-center gap-1.5 leading-none">
                     🌟 Toko E-Catalog WhatsApp Anda Aktif!
                   </h3>
@@ -323,7 +323,7 @@ export default function TenantDashboard() {
                   </p>
                   <div className="pt-2 flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Link Toko Anda:</span>
-                    <span className="inline-flex items-center px-3 py-1 bg-emerald-500/5 border border-emerald-500/15 rounded-lg text-xs font-bold text-emerald-600 font-mono tracking-tight select-all">
+                    <span className="inline-flex items-center px-3 py-1 bg-emerald-500/5 border border-emerald-500/15 rounded-lg text-xs font-bold text-emerald-600 font-mono tracking-tight select-all break-all max-w-full">
                       {typeof window !== 'undefined' ? `${window.location.origin}/store/${profile.username}` : `/store/${profile.username}`}
                     </span>
                   </div>
