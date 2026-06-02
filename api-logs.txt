@@ -1,0 +1,49 @@
+2026-06-02T13:52:54.573Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T13:52:56.584Z - Server-side auto-created default branch "Pusat" for tenant: a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T13:52:56.606Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T13:53:03.873Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T13:53:05.705Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T13:53:19.467Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T13:53:21.270Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T13:53:40.939Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T13:53:57.397Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T13:53:59.261Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T14:05:54.888Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T14:15:31.833Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T14:52:42.399Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T14:52:44.734Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:04:12.849Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:04:14.476Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:05:18.489Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:05:20.933Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:06:53.106Z - POST branches called with body={"tenant_id":"a67a728d-543c-4045-8209-764c66fd045a","name":"Munir-jaya-kediri","address":"kediri selatan","phone_number":"089999888777","manager_name":"munir misbah","manager_email":"misbah@gmail.com","manager_password":"123123123"}
+2026-06-02T15:06:58.021Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:07:26.562Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:07:28.752Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:07:37.857Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:07:40.104Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:07:56.683Z - GET branches called with id=undefined, tenant_id=5caea2fd-1c13-47bd-bba4-817f370f08f3
+2026-06-02T15:07:57.964Z - Server-side auto-created default branch "Pusat" for tenant: 5caea2fd-1c13-47bd-bba4-817f370f08f3
+2026-06-02T15:07:58.708Z - GET branches called with id=undefined, tenant_id=5caea2fd-1c13-47bd-bba4-817f370f08f3
+2026-06-02T15:10:16.202Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:10:17.695Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:10:24.976Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:10:27.420Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:14:14.668Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:14:14.678Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:24:32.205Z - GET branches called with id=undefined, tenant_id=0f34733d-b653-43a4-914b-f96aa62bead0
+2026-06-02T15:24:33.416Z - Server-side auto-created default branch "Pusat" for tenant: 0f34733d-b653-43a4-914b-f96aa62bead0
+2026-06-02T15:25:25.959Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:25:27.832Z - GET branches called with id=undefined, tenant_id=a67a728d-543c-4045-8209-764c66fd045a
+2026-06-02T15:26:04.496Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T15:26:05.997Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T15:26:46.423Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T15:26:48.385Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T15:35:03.518Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T15:35:07.883Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T15:53:41.019Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T15:53:42.632Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T15:59:57.615Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T15:59:59.612Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T17:09:40.752Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T17:11:01.528Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339

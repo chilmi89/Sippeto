@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     is_active BOOLEAN DEFAULT TRUE,
     metadata JSONB DEFAULT '{}',
     branch_id UUID, -- Didefinisikan nanti setelah tabel branches dibuat
+    payment_qr TEXT,
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS public.branches (
     address TEXT,
     phone_number VARCHAR(20),
     is_active BOOLEAN DEFAULT TRUE,
+    payment_qr TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -329,3 +331,53 @@ CREATE POLICY "Manage Groups" ON public.transaction_groups FOR ALL USING (auth.u
 CREATE POLICY "Manage Items via Group" ON public.transaction_items FOR ALL USING (
     EXISTS (SELECT 1 FROM public.transaction_groups g WHERE g.id = group_id AND g.profile_id = auth.uid())
 );
+
+-- =========================================================================
+-- FUTURE FEATURES SCHEMA (FASE 5: ORDERS & ORDER ITEMS)
+-- =========================================================================
+
+CREATE TYPE order_status AS ENUM ('PENDING', 'SUCCESS', 'CANCELLED');
+
+CREATE TABLE IF NOT EXISTS public.orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    branch_id UUID REFERENCES public.branches(id) ON DELETE SET NULL,
+    reference_number VARCHAR(100) UNIQUE NOT NULL,
+    customer_name VARCHAR(255) NOT NULL,
+    customer_phone VARCHAR(20) NOT NULL,
+    customer_address TEXT NOT NULL,
+    payment_method VARCHAR(50) NOT NULL,
+    total_price NUMERIC(15, 2) NOT NULL DEFAULT 0,
+    status order_status DEFAULT 'PENDING' NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.order_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL,
+    product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    price NUMERIC(15, 2) NOT NULL DEFAULT 0
+);
+
+-- RLS for orders and order_items
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Manage own orders" ON public.orders FOR ALL USING (auth.uid() = profile_id);
+CREATE POLICY "Public can insert orders" ON public.orders FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Manage own order items" ON public.order_items FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.orders o WHERE o.id = order_id AND o.profile_id = auth.uid())
+);
+CREATE POLICY "Public can insert order items" ON public.order_items FOR INSERT WITH CHECK (true);
+
+-- Trigger to update updated_at on orders
+CREATE TRIGGER update_orders_modtime BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_orders_profile_id ON public.orders(profile_id);
+CREATE INDEX IF NOT EXISTS idx_orders_branch_id ON public.orders(branch_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON public.order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON public.order_items(product_id);

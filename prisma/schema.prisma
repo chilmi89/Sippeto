@@ -23,12 +23,12 @@ model categories {
 }
 
 model product_categories {
-  id                String              @id @default(uuid()) @db.Uuid
-  profile_id        String?             @db.Uuid
-  name              String              @db.VarChar(100)
-  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
-  profiles          profiles?           @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  products          products[]
+  id         String     @id @default(uuid()) @db.Uuid
+  profile_id String?    @db.Uuid
+  name       String     @db.VarChar(100)
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  profiles   profiles?  @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products   products[]
 
   @@unique([profile_id, name])
 }
@@ -73,14 +73,15 @@ model profiles {
   updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
   branch_id          String?              @db.Uuid
   username           String?              @unique @db.VarChar(100)
+  payment_qr         String?
+  owned_branches     branches[]           @relation("TenantBranches")
   categories         categories[]
-  product_categories product_categories[]
   payment_methods    payment_methods[]
+  product_categories product_categories[]
+  products           products[]
+  branches           branches?            @relation("BranchStaff", fields: [branch_id], references: [id], onUpdate: NoAction)
   roles              roles?               @relation(fields: [role_id], references: [id], onUpdate: NoAction)
   transaction_groups transaction_groups[]
-  branches           branches?            @relation("BranchStaff", fields: [branch_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  owned_branches     branches[]           @relation("TenantBranches")
-  products           products[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -115,7 +116,6 @@ model transaction_attachments {
 model transaction_groups {
   id                      String                    @id @default(uuid()) @db.Uuid
   profile_id              String?                   @db.Uuid
-  branch_id               String?                   @db.Uuid
   reference_number        String?                   @unique @db.VarChar(100)
   transaction_date        DateTime?                 @default(dbgenerated("CURRENT_DATE")) @db.Date
   total_income            Decimal?                  @default(0) @db.Decimal(15, 2)
@@ -123,10 +123,11 @@ model transaction_groups {
   net_balance             Decimal?                  @default(0) @db.Decimal(15, 2)
   description             String?
   created_at              DateTime?                 @default(now()) @db.Timestamptz(6)
+  branch_id               String?                   @db.Uuid
   transaction_attachments transaction_attachments[]
+  branches                branches?                 @relation(fields: [branch_id], references: [id], onUpdate: NoAction)
   profiles                profiles?                 @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   transaction_items       transaction_items[]
-  branches                branches?                 @relation(fields: [branch_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -135,55 +136,56 @@ model transaction_items {
   group_id           String?             @db.Uuid
   category_id        String?             @db.Uuid
   payment_method_id  String?             @db.Uuid
-  product_id         String?             @db.Uuid
   type               String              @db.VarChar(20)
   name               String?             @db.VarChar(255)
   amount             Decimal?            @default(0) @db.Decimal(15, 2)
-  quantity           Int                 @default(1)
   created_at         DateTime?           @default(now()) @db.Timestamptz(6)
+  product_id         String?             @db.Uuid
+  quantity           Int                 @default(1)
   categories         categories?         @relation(fields: [category_id], references: [id], onUpdate: NoAction)
   transaction_groups transaction_groups? @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   payment_methods    payment_methods?    @relation(fields: [payment_method_id], references: [id], onUpdate: NoAction)
-  products           products?           @relation(fields: [product_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  products           products?           @relation(fields: [product_id], references: [id], onUpdate: NoAction)
 }
 
 model branches {
-  id                 String               @id @default(uuid()) @db.Uuid
-  tenant_id          String               @db.Uuid
-  name               String               @db.VarChar(100)
-  address            String?
-  phone_number       String?              @db.VarChar(20)
-  is_active          Boolean?             @default(true)
-  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
-  tenant             profiles             @relation("TenantBranches", fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  staff              profiles[]           @relation("BranchStaff")
-  transaction_groups transaction_groups[]
-  product_stocks     product_stocks[]
-  stock_mutations_from stock_mutations[]  @relation("FromBranch")
-  stock_mutations_to   stock_mutations[]  @relation("ToBranch")
-  products           products[]           @relation("BranchProducts")
+  id                   String               @id @default(uuid()) @db.Uuid
+  tenant_id            String               @db.Uuid
+  name                 String               @db.VarChar(100)
+  address              String?
+  phone_number         String?              @db.VarChar(20)
+  is_active            Boolean?             @default(true)
+  created_at           DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?            @default(now()) @db.Timestamptz(6)
+  payment_qr           String?
+  tenant               profiles             @relation("TenantBranches", fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_stocks       product_stocks[]
+  products             products[]           @relation("BranchProducts")
+  staff                profiles[]           @relation("BranchStaff")
+  stock_mutations_from stock_mutations[]    @relation("FromBranch")
+  stock_mutations_to   stock_mutations[]    @relation("ToBranch")
+  transaction_groups   transaction_groups[]
 }
 
 model products {
-  id                String              @id @default(uuid()) @db.Uuid
-  profile_id        String              @db.Uuid
-  category_id       String?             @db.Uuid
-  branch_id         String?             @db.Uuid
-  name              String              @db.VarChar(255)
-  description       String?
-  base_price        Decimal             @default(0) @db.Decimal(15, 2)
-  sell_price        Decimal             @default(0) @db.Decimal(15, 2)
-  image_url         String?
-  is_active         Boolean?            @default(true)
-  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime?           @default(now()) @db.Timestamptz(6)
-  profiles          profiles            @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  product_categories product_categories? @relation(fields: [category_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  branches          branches?           @relation("BranchProducts", fields: [branch_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  product_stocks    product_stocks[]
-  stock_mutations   stock_mutations[]
-  transaction_items transaction_items[]
+  id                 String              @id @default(uuid()) @db.Uuid
+  profile_id         String              @db.Uuid
+  category_id        String?             @db.Uuid
+  name               String              @db.VarChar(255)
+  description        String?
+  base_price         Decimal             @default(0) @db.Decimal(15, 2)
+  sell_price         Decimal             @default(0) @db.Decimal(15, 2)
+  image_url          String?
+  is_active          Boolean?            @default(true)
+  created_at         DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?           @default(now()) @db.Timestamptz(6)
+  branch_id          String?             @db.Uuid
+  product_stocks     product_stocks[]
+  branches           branches?           @relation("BranchProducts", fields: [branch_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_categories product_categories? @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  profiles           profiles            @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stock_mutations    stock_mutations[]
+  transaction_items  transaction_items[]
 }
 
 model product_stocks {
@@ -194,8 +196,8 @@ model product_stocks {
   min_stock  Int       @default(0)
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
-  products   products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   branches   branches  @relation(fields: [branch_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products   products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([product_id, branch_id])
 }
@@ -209,7 +211,7 @@ model stock_mutations {
   type           String    @db.VarChar(50)
   notes          String?
   created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  from_branch    branches? @relation("FromBranch", fields: [from_branch_id], references: [id], onUpdate: NoAction)
   products       products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  from_branch    branches? @relation("FromBranch", fields: [from_branch_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  to_branch      branches? @relation("ToBranch", fields: [to_branch_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  to_branch      branches? @relation("ToBranch", fields: [to_branch_id], references: [id], onUpdate: NoAction)
 }

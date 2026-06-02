@@ -24,18 +24,22 @@ interface Profile {
   avatar_url?: string;
   banner_url?: string;
   username?: string | null;
+  payment_qr?: string | null;
 }
 
 const ProfileTenantPage = () => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+        const fileInputRef = useRef<HTMLInputElement>(null);
     const bannerInputRef = useRef<HTMLInputElement>(null);
+    const qrInputRef = useRef<HTMLInputElement>(null);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [bannerFile, setBannerFile] = useState<File | null>(null);
     const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+    const [qrFile, setQrFile] = useState<File | null>(null);
+    const [qrPreview, setQrPreview] = useState<string | null>(null);
     const [uploadingFiles, setUploadingFiles] = useState(false);
 
     const [editData, setEditData] = useState({
@@ -56,6 +60,7 @@ const ProfileTenantPage = () => {
                 });
                 setAvatarPreview(data.avatar_url || null);
                 setBannerPreview(data.banner_url || null);
+                setQrPreview(data.payment_qr || null);
             } else { toast.error("Gagal mengambil data profil."); }
         } catch { toast.error("Kesalahan jaringan."); }
         finally { setLoading(false); }
@@ -63,21 +68,23 @@ const ProfileTenantPage = () => {
 
     useEffect(() => { fetchProfile(); }, []);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner' | 'qr') => {
         const file = e.target.files?.[0];
         if (!file) return;
         if (!file.type.startsWith('image/')) { toast.error("Hanya file gambar!"); return; }
         if (file.size > 5 * 1024 * 1024) { toast.error("Maks 5MB"); return; }
         const url = URL.createObjectURL(file);
         if (type === 'avatar') { setAvatarFile(file); setAvatarPreview(url); }
-        else { setBannerFile(file); setBannerPreview(url); }
+        else if (type === 'banner') { setBannerFile(file); setBannerPreview(url); }
+        else { setQrFile(file); setQrPreview(url); }
     };
 
-    const uploadFileToServer = async (file: File, type: 'avatar' | 'banner', oldUrl?: string | null) => {
+    const uploadFileToServer = async (file: File, type: 'avatar' | 'banner' | 'qr', oldUrl?: string | null) => {
         const fd = new FormData();
         fd.append('file', file);
         if (oldUrl) fd.append('old_url', oldUrl);
-        const res = await fetch(type === 'avatar' ? '/api/upload/avatar' : '/api/upload/banner', { method: 'POST', body: fd });
+        const endpoint = type === 'avatar' ? '/api/upload/avatar' : type === 'banner' ? '/api/upload/banner' : '/api/upload/payment-qr';
+        const res = await fetch(endpoint, { method: 'POST', body: fd });
         const data = await res.json();
         if (!res.ok || !data.url) throw new Error(data.error || `Gagal unggah ${type}`);
         return data.url;
@@ -87,21 +94,22 @@ const ProfileTenantPage = () => {
         if (e) e.preventDefault();
         setLoading(true);
         try {
-            let avUrl = profile?.avatar_url, bnUrl = profile?.banner_url;
-            if (avatarFile || bannerFile) {
+            let avUrl = profile?.avatar_url, bnUrl = profile?.banner_url, qrUrl = profile?.payment_qr;
+            if (avatarFile || bannerFile || qrFile) {
                 setUploadingFiles(true);
                 try {
                     if (avatarFile) avUrl = await uploadFileToServer(avatarFile, 'avatar', profile?.avatar_url);
                     if (bannerFile) bnUrl = await uploadFileToServer(bannerFile, 'banner', profile?.banner_url);
+                    if (qrFile) qrUrl = await uploadFileToServer(qrFile, 'qr', profile?.payment_qr);
                 } catch (err: any) { toast.error(err.message); setUploadingFiles(false); setLoading(false); return; }
                 setUploadingFiles(false);
             }
             const res = await fetch('/api/umkm', {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: profile?.id, ...editData, avatar_url: avUrl, banner_url: bnUrl }),
+                body: JSON.stringify({ id: profile?.id, ...editData, avatar_url: avUrl, banner_url: bnUrl, payment_qr: qrUrl }),
             });
             const data = await res.json();
-            if (res.ok) { toast.success("Profil berhasil diperbarui!"); setIsEditing(false); setAvatarFile(null); setBannerFile(null); fetchProfile(); }
+            if (res.ok) { toast.success("Profil berhasil diperbarui!"); setIsEditing(false); setAvatarFile(null); setBannerFile(null); setQrFile(null); fetchProfile(); }
             else toast.error(data.error || "Gagal memperbarui profil.");
         } catch { toast.error("Gagal terhubung ke server."); setUploadingFiles(false); }
         finally { setLoading(false); }
@@ -124,9 +132,9 @@ const ProfileTenantPage = () => {
             </div>
 
             {/* Peringatan file belum simpan */}
-            {(avatarFile || bannerFile) && !isEditing && (
+            {(avatarFile || bannerFile || qrFile) && !isEditing && (
                 <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-2xl flex items-center justify-between gap-3 text-xs font-bold">
-                    <span>⭐ Foto baru belum tersimpan. Klik Edit lalu Simpan.</span>
+                    <span>⭐ Foto atau QR baru belum tersimpan. Klik Edit lalu Simpan.</span>
                     <button onClick={() => setIsEditing(true)} className="px-4 py-1.5 bg-amber-500 text-white rounded-lg text-[10px] uppercase tracking-widest font-bold shrink-0 hover:bg-amber-600 transition-all">Simpan</button>
                 </div>
             )}
@@ -221,12 +229,29 @@ const ProfileTenantPage = () => {
 
                         {/* Tile: Email */}
                         <BentoTile span={4} icon={<Mail className="w-4 h-4" />} label="Email" value={profile?.email} />
+
+                        {/* Tile: QR Pembayaran */}
+                        <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-white border border-zinc-100 rounded-2xl p-5 flex flex-col gap-2 hover:shadow-md hover:border-emerald-500/20 transition-all group">
+                            <div className="flex items-center gap-2.5 pt-2">
+                                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
+                                    <ImageIcon className="w-4 h-4" />
+                                </div>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">QR Pembayaran Owner</span>
+                            </div>
+                            <div className="flex items-center justify-center p-3 bg-zinc-50 rounded-xl border border-zinc-100 w-full aspect-square max-h-[160px] mx-auto overflow-hidden">
+                                {profile?.payment_qr ? (
+                                    <img src={profile.payment_qr} alt="QR Pembayaran" className="h-full object-contain rounded-lg" />
+                                ) : (
+                                    <span className="text-zinc-300 italic font-medium text-xs">Belum diatur</span>
+                                )}
+                            </div>
+                        </div>
                         
                         {/* Tile: Phone */}
                         <BentoTile span={4} icon={<Phone className="w-4 h-4" />} label="Telepon / WA" value={profile?.phone_number} />
 
                         {/* Tile: Username Toko */}
-                        <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-white border border-zinc-100 rounded-2xl p-5 flex flex-col gap-2 hover:shadow-md hover:border-emerald-500/20 transition-all group">
+                        <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-white border border-zinc-100 rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md hover:border-emerald-500/20 transition-all group">
                             <div className="flex items-center gap-2.5 pt-2">
                                 <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
                                     <Store className="w-4 h-4" />
@@ -247,6 +272,23 @@ const ProfileTenantPage = () => {
                                     <span className="text-zinc-300 italic font-medium text-xs">Belum diatur</span>
                                 )}
                             </p>
+                            {profile?.username && (
+                                <div className="flex flex-col items-center justify-center p-3 bg-zinc-50 border border-zinc-100 rounded-xl w-full">
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(typeof window !== 'undefined' ? `${window.location.origin}/store/${profile.username}` : '')}`} 
+                                        alt="QR Link Toko" 
+                                        className="w-28 h-28 object-contain bg-white p-1 rounded-lg border border-zinc-200"
+                                    />
+                                    <a 
+                                        href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(typeof window !== 'undefined' ? `${window.location.origin}/store/${profile.username}` : '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[9px] font-bold text-primary mt-2 uppercase tracking-wider hover:underline"
+                                    >
+                                        Unduh / Buka QR Toko
+                                    </a>
+                                </div>
+                            )}
                         </div>
 
                         {/* Tile: Bio (full) */}
@@ -310,6 +352,30 @@ const ProfileTenantPage = () => {
                                 <textarea value={editData.address} onChange={(e) => setEditData({...editData, address: e.target.value})} rows={2}
                                     className="w-full bg-zinc-50 border border-zinc-200 text-[#030037] p-3 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-sm resize-none"
                                     placeholder="Jalan, RT/RW, Kelurahan, Kecamatan, Kota" />
+                            </div>
+
+                            <div className="space-y-2 border-t border-zinc-100 pt-4">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 ml-1">QR Code Pembayaran (Pusat)</label>
+                                <div className="flex flex-col sm:flex-row items-center gap-4 bg-zinc-50 border border-zinc-200 rounded-2xl p-4">
+                                    <div className="w-24 h-24 rounded-xl bg-white border border-zinc-100 flex items-center justify-center overflow-hidden shrink-0 relative group">
+                                        {qrPreview ? (
+                                            <img src={qrPreview} alt="QR Preview" className="w-full h-full object-contain p-1" />
+                                        ) : (
+                                            <ImageIcon className="w-8 h-8 text-zinc-300" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 text-center sm:text-left space-y-2">
+                                        <p className="text-[10px] text-zinc-500 font-medium">Unggah gambar QR Code pembayaran utama (QRIS, e-wallet, bank, dll) untuk toko/pusat Anda. Format yang didukung: JPG, PNG. Maksimal 5MB.</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => qrInputRef.current?.click()}
+                                            className="px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+                                        >
+                                            Pilih Gambar QR
+                                        </button>
+                                        <input type="file" ref={qrInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'qr')} />
+                                    </div>
+                                </div>
                             </div>
                             
                             <button type="submit" disabled={loading} className="w-full bg-[#030037] py-3.5 rounded-xl text-xs font-bold uppercase tracking-widest text-white hover:bg-primary transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#030037]/10">

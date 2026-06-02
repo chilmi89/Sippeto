@@ -14,6 +14,7 @@ interface Branch {
     phone_number: string | null;
     is_active: boolean;
     created_at: string;
+    payment_qr?: string | null;
     staff?: {
         id: string;
         full_name: string | null;
@@ -32,6 +33,7 @@ export default function BranchesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [hasPermission, setHasPermission] = useState(true);
     
     // Form & Modal States
     const [isOpenModal, setIsOpenModal] = useState(false);
@@ -43,14 +45,54 @@ export default function BranchesPage() {
     const [formAddress, setFormAddress] = useState("");
     const [formPhone, setFormPhone] = useState("");
     const [formIsActive, setFormIsActive] = useState(true);
+    const [formQr, setFormQr] = useState("");
+    const [qrFile, setQrFile] = useState<File | null>(null);
+    const [qrPreview, setQrPreview] = useState<string | null>(null);
+    const [uploadingQr, setUploadingQr] = useState(false);
 
     // Manager / Franchisee Fields (Only on Add)
     const [formManagerName, setFormManagerName] = useState("");
     const [formManagerEmail, setFormManagerEmail] = useState("");
     const [formManagerPassword, setFormManagerPassword] = useState("");
 
+    const handleQrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert("Hanya file gambar!");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert("Ukuran file maksimal 5MB");
+            return;
+        }
+        setQrFile(file);
+        setQrPreview(URL.createObjectURL(file));
+    };
+
+    const uploadQrToServer = async (file: File, oldUrl?: string | null) => {
+        const fd = new FormData();
+        fd.append('file', file);
+        if (oldUrl) fd.append('old_url', oldUrl);
+        const res = await fetch('/api/upload/payment-qr', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok || !data.url) throw new Error(data.error || 'Gagal mengunggah QR Code');
+        return data.url;
+    };
+
     const fetchProfileAndBranches = async () => {
         try {
+            const userRes = await fetch("/api/auth/me");
+            if (userRes.ok) {
+                const userData = await userRes.json();
+                
+                if (userData.permissions && !userData.permissions.includes("kelola_cabang")) {
+                    setHasPermission(false);
+                    setIsLoading(false);
+                    return;
+                }
+            }
+
             const profileRes = await fetch("/api/backend/tenant-umkm");
             if (profileRes.ok) {
                 const profileData = await profileRes.json();
@@ -87,6 +129,9 @@ export default function BranchesPage() {
         setFormAddress("");
         setFormPhone("");
         setFormIsActive(true);
+        setFormQr("");
+        setQrFile(null);
+        setQrPreview(null);
         setFormManagerName("");
         setFormManagerEmail("");
         setFormManagerPassword("");
@@ -101,6 +146,9 @@ export default function BranchesPage() {
         setFormAddress(branch.address || "");
         setFormPhone(branch.phone_number || "");
         setFormIsActive(branch.is_active);
+        setFormQr(branch.payment_qr || "");
+        setQrFile(null);
+        setQrPreview(branch.payment_qr || null);
         setFormManagerName("");
         setFormManagerEmail("");
         setFormManagerPassword("");
@@ -115,6 +163,21 @@ export default function BranchesPage() {
         setErrorMessage("");
         setIsSaving(true);
         try {
+            let qrUrl = formQr;
+            if (qrFile) {
+                setUploadingQr(true);
+                try {
+                    qrUrl = await uploadQrToServer(qrFile, formQr || null);
+                    setFormQr(qrUrl);
+                } catch (uploadErr: any) {
+                    setErrorMessage(uploadErr.message || "Gagal mengunggah QR Code");
+                    setIsSaving(false);
+                    setUploadingQr(false);
+                    return;
+                }
+                setUploadingQr(false);
+            }
+
             if (modalMode === "add") {
                 const res = await fetch("/api/backend/branches", {
                     method: "POST",
@@ -126,7 +189,8 @@ export default function BranchesPage() {
                         phone_number: formPhone,
                         manager_name: formManagerName || undefined,
                         manager_email: formManagerEmail || undefined,
-                        manager_password: formManagerPassword || undefined
+                        manager_password: formManagerPassword || undefined,
+                        payment_qr: qrUrl || null
                     })
                 });
 
@@ -146,7 +210,8 @@ export default function BranchesPage() {
                         name: formName,
                         address: formAddress,
                         phone_number: formPhone,
-                        is_active: formIsActive
+                        is_active: formIsActive,
+                        payment_qr: qrUrl || null
                     })
                 });
 
@@ -163,6 +228,7 @@ export default function BranchesPage() {
             setErrorMessage("Kesalahan jaringan saat menyimpan data");
         } finally {
             setIsSaving(false);
+            setUploadingQr(false);
         }
     };
 
@@ -198,6 +264,22 @@ export default function BranchesPage() {
             console.error("Gagal mengubah status cabang:", err);
         }
     };
+
+    if (!hasPermission) {
+        return (
+            <div className="w-full flex flex-col items-center justify-center min-h-[60vh] py-10 px-4">
+                <div className="bg-rose-50 border border-rose-100 rounded-3xl p-10 max-w-lg text-center shadow-2xl shadow-rose-500/10 flex flex-col items-center">
+                    <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-xl shadow-rose-200/50">
+                        <XCircle className="w-12 h-12 text-rose-500" />
+                    </div>
+                    <h2 className="text-2xl font-black text-rose-600 mb-3 uppercase tracking-tight">Akses Ditolak</h2>
+                    <p className="text-rose-500/80 font-medium text-sm">
+                        Anda tidak memiliki hak akses (`kelola_cabang`) untuk membuka halaman kelola cabang ini. Silakan hubungi Administrator Anda.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full flex flex-col gap-6 py-2 pb-20 px-4 sm:px-6">
@@ -258,6 +340,13 @@ export default function BranchesPage() {
                                                         <span className="text-[10px] text-zinc-400 italic block mt-1">
                                                             Belum ada pengelola
                                                         </span>
+                                                    )}
+                                                    {branch.payment_qr && (
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="inline-flex items-center gap-0.5 bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border border-emerald-100">
+                                                                QR AKTIF
+                                                            </span>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
@@ -400,6 +489,28 @@ export default function BranchesPage() {
                                                     className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium text-zinc-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all duration-200 resize-none"
                                                 />
                                             </div>
+                                            <div className="space-y-1.5 pt-2">
+                                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block">QR Code Pembayaran Cabang</label>
+                                                <div className="flex items-center gap-3 bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                                                    <div className="w-14 h-14 rounded-lg bg-white border border-zinc-200 flex items-center justify-center overflow-hidden shrink-0">
+                                                        {qrPreview ? (
+                                                            <img src={qrPreview} alt="QR Preview" className="w-full h-full object-contain p-0.5" />
+                                                        ) : (
+                                                            <Store className="w-6 h-6 text-zinc-300" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 space-y-1.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => document.getElementById("qr-upload-input")?.click()}
+                                                            className="px-3 py-1.5 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
+                                                        >
+                                                            Pilih QR
+                                                        </button>
+                                                        <input id="qr-upload-input" type="file" className="hidden" accept="image/*" onChange={handleQrChange} />
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* Kolom Kanan: Kredensial Pengelola */}
@@ -475,6 +586,28 @@ export default function BranchesPage() {
                                                 rows={3}
                                                 className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium text-zinc-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all duration-200 resize-none"
                                             />
+                                        </div>
+                                        <div className="space-y-1.5 pt-1">
+                                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block">QR Code Pembayaran Cabang</label>
+                                            <div className="flex items-center gap-3 bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                                                <div className="w-14 h-14 rounded-lg bg-white border border-zinc-200 flex items-center justify-center overflow-hidden shrink-0">
+                                                    {qrPreview ? (
+                                                        <img src={qrPreview} alt="QR Preview" className="w-full h-full object-contain p-0.5" />
+                                                    ) : (
+                                                        <Store className="w-6 h-6 text-zinc-300" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 space-y-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => document.getElementById("qr-upload-input-edit")?.click()}
+                                                        className="px-3 py-1.5 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
+                                                    >
+                                                        Pilih QR
+                                                    </button>
+                                                    <input id="qr-upload-input-edit" type="file" className="hidden" accept="image/*" onChange={handleQrChange} />
+                                                </div>
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-3 pt-2">
                                             <input

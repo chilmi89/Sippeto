@@ -114,72 +114,102 @@ export default function TenantStocksPage() {
                 const profileId = userData.id;
                 const branchId = userData.branch_id;
 
+                // 1. Ambil daftar cabang terlebih dahulu
+                const branchesRes = await fetch(`/api/backend/branches?tenant_id=${profileId}`, { cache: "no-store" });
+                let activeBranches: any[] = [];
+                if (branchesRes.ok) {
+                    const branchesData = await branchesRes.json();
+                    activeBranches = branchesData.data || [];
+                    
+                    // Auto-create jika owner tidak memiliki cabang sama sekali
+                    if (!branchId && activeBranches.length === 0) {
+                        const createBranchRes = await fetch("/api/backend/branches", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                tenant_id: profileId,
+                                name: "Pusat"
+                            })
+                        });
+                        if (createBranchRes.ok) {
+                            const newBranchData = await createBranchRes.json();
+                            if (newBranchData.data) {
+                                activeBranches = [newBranchData.data];
+                            }
+                        }
+                    }
+                    setBranches(activeBranches);
+                }
+
+                // 2. Tentukan URL endpoint stok & produk
                 let stocksUrl = "";
                 let productsUrl = `/api/backend/products?tenant_id=${profileId}`;
 
                 if (branchId) {
                     stocksUrl = `/api/backend/stocks?branch_id=${branchId}`;
                 } else {
-                    // Owner mengambil riwayat mutasi global tenant
                     stocksUrl = `/api/backend/stocks?tenant_id=${profileId}`;
                 }
 
-                // Dapatkan data stok & mutasi
+                // 3. Dapatkan data stok & produk
                 const [stocksRes, productsRes] = await Promise.all([
-                    fetch(stocksUrl),
-                    fetch(productsUrl)
+                    fetch(stocksUrl, { cache: "no-store" }),
+                    fetch(productsUrl, { cache: "no-store" })
                 ]);
 
-                if (stocksRes.ok) {
+                if (stocksRes.ok && productsRes.ok) {
                     const stocksData = await stocksRes.json();
-                    
-                    // Jika diakses oleh Owner, kita harus memetakan product_stocks secara global
+                    const pData = await productsRes.json();
+                    const allProducts: any[] = pData.data || [];
+                    setProducts(allProducts.map(p => ({ id: p.id, name: p.name })));
+
+                    const flattenedStocks: Stock[] = [];
+
                     if (!branchId) {
-                        // Karena endpoint GET/stocks dengan tenant_id mengembalikan mutasi global,
-                        // kita map data stocks dari API products agar tabel sinkron
-                        if (productsRes.ok) {
-                            const pData = await productsRes.json();
-                            const allProducts: any[] = pData.data || [];
-                            setProducts(allProducts.map(p => ({ id: p.id, name: p.name })));
-                            
-                            // Flatten all product_stocks
-                            const flattenedStocks: Stock[] = [];
-                            allProducts.forEach(prod => {
-                                prod.product_stocks?.forEach((ps: any) => {
-                                    flattenedStocks.push({
-                                        id: ps.id,
-                                        product_id: prod.id,
-                                        branch_id: ps.branch_id,
-                                        stock: ps.stock,
-                                        min_stock: ps.min_stock,
-                                        products: {
-                                            name: prod.name,
-                                            sell_price: Number(prod.sell_price)
-                                        },
-                                        branches: {
-                                            name: ps.branches?.name || "Cabang"
-                                        }
-                                    });
+                        // OWNER VIEW: Loop untuk semua produk di semua cabang
+                        allProducts.forEach(prod => {
+                            activeBranches.forEach((branch: any) => {
+                                const ps = prod.product_stocks?.find((s: any) => s.branch_id === branch.id);
+                                flattenedStocks.push({
+                                    id: ps ? ps.id : `virtual-${prod.id}-${branch.id}`,
+                                    product_id: prod.id,
+                                    branch_id: branch.id,
+                                    stock: ps ? ps.stock : 0,
+                                    min_stock: ps ? ps.min_stock : 0,
+                                    products: {
+                                        name: prod.name,
+                                        sell_price: Number(prod.sell_price)
+                                    },
+                                    branches: {
+                                        name: branch.name
+                                    }
                                 });
                             });
-                            setStocks(flattenedStocks);
-                        }
+                        });
                     } else {
-                        // Cabang
-                        setStocks(stocksData.stocks || []);
-                        if (productsRes.ok) {
-                            const pData = await productsRes.json();
-                            setProducts(pData.data || []);
-                        }
+                        // BRANCH STAFF VIEW: Loop untuk semua produk di cabang staff tersebut
+                        allProducts.forEach(prod => {
+                            const ps = prod.product_stocks?.find((s: any) => s.branch_id === branchId);
+                            const currentBranchName = activeBranches.find((b: any) => b.id === branchId)?.name || "Cabang Anda";
+                            flattenedStocks.push({
+                                id: ps ? ps.id : `virtual-${prod.id}-${branchId}`,
+                                product_id: prod.id,
+                                branch_id: branchId,
+                                stock: ps ? ps.stock : 0,
+                                min_stock: ps ? ps.min_stock : 0,
+                                products: {
+                                    name: prod.name,
+                                    sell_price: Number(prod.sell_price)
+                                },
+                                branches: {
+                                    name: currentBranchName
+                                }
+                            });
+                        });
                     }
+                    
+                    setStocks(flattenedStocks);
                     setMutations(stocksData.mutations || []);
-                }
-
-                // Ambil daftar cabang
-                const branchesRes = await fetch(`/api/backend/branches?tenant_id=${profileId}`);
-                if (branchesRes.ok) {
-                    const branchesData = await branchesRes.json();
-                    setBranches(branchesData.data || []);
                 }
             }
         } catch (error) {
