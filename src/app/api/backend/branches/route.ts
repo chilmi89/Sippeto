@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import fs from "fs";
+import path from "path";
+
+export const dynamic = "force-dynamic";
+
+function logToFile(message: string) {
+    try {
+        const logPath = path.join(process.cwd(), "api-logs.txt");
+        fs.appendFileSync(logPath, `${new Date().toISOString()} - ${message}\n`);
+    } catch (e) {
+        console.error("Log writing failed:", e);
+    }
+}
 
 // 1. GET - Ambil daftar cabang dengan data pengelolanya
 export async function GET(req: Request) {
@@ -8,6 +21,8 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const id = searchParams.get("id") ?? undefined;
         const tenant_id = searchParams.get("tenant_id") ?? undefined;
+
+        logToFile(`GET branches called with id=${id}, tenant_id=${tenant_id}`);
 
         if (id) {
             const branch = await prisma.branches.findUnique({
@@ -34,7 +49,7 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Tenant ID (profile_id) wajib disertakan" }, { status: 400 });
         }
 
-        const branches = await prisma.branches.findMany({
+        let branches = await prisma.branches.findMany({
             where: { tenant_id },
             orderBy: { name: "asc" },
             include: {
@@ -52,8 +67,30 @@ export async function GET(req: Request) {
             }
         });
 
+        if (branches.length === 0) {
+            try {
+                const newBranch = await prisma.branches.create({
+                    data: {
+                        tenant_id,
+                        name: "Pusat",
+                        is_active: true
+                    }
+                });
+                logToFile(`Server-side auto-created default branch "Pusat" for tenant: ${tenant_id}`);
+                branches = [{
+                    ...newBranch,
+                    staff: [],
+                    _count: { transaction_groups: 0 }
+                }];
+            } catch (createErr) {
+                console.error("Failed to server-side auto-create branch:", createErr);
+                logToFile(`Failed to server-side auto-create branch: ${createErr}`);
+            }
+        }
+
         return NextResponse.json({ data: branches });
     } catch (error) {
+        logToFile(`GET branches error: ${error}`);
         console.error("GET BRANCHES ERROR:", error);
         return NextResponse.json({ error: "Gagal mengambil data cabang" }, { status: 500 });
     }
@@ -63,6 +100,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
+        console.log("=== API POST BRANCH RECEIVED ===", body);
+        logToFile(`POST branches called with body=${JSON.stringify(body)}`);
         const { 
             tenant_id, 
             name, 
@@ -70,7 +109,8 @@ export async function POST(req: Request) {
             phone_number,
             manager_name,
             manager_email,
-            manager_password
+            manager_password,
+            payment_qr
         } = body;
 
         if (!tenant_id || !name) {
@@ -100,7 +140,8 @@ export async function POST(req: Request) {
                     name,
                     address: address ?? null,
                     phone_number: phone_number ?? null,
-                    is_active: true
+                    is_active: true,
+                    payment_qr: payment_qr ?? null
                 }
             });
 
@@ -148,7 +189,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
     try {
         const body = await req.json();
-        const { id, name, address, phone_number, is_active } = body;
+        const { id, name, address, phone_number, is_active, payment_qr } = body;
 
         if (!id) {
             return NextResponse.json({ error: "ID cabang wajib disertakan" }, { status: 400 });
@@ -160,7 +201,8 @@ export async function PATCH(req: Request) {
                 ...(name && { name }),
                 ...(address !== undefined && { address }),
                 ...(phone_number !== undefined && { phone_number }),
-                ...(is_active !== undefined && { is_active })
+                ...(is_active !== undefined && { is_active }),
+                ...(payment_qr !== undefined && { payment_qr })
             }
         });
 

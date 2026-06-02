@@ -138,13 +138,31 @@ export default function TenantProductsPage() {
                 }
 
                 if (!branchId) {
-                    const branchesRes = await fetch(`/api/backend/branches?tenant_id=${profileId}`);
+                    const branchesRes = await fetch(`/api/backend/branches?tenant_id=${profileId}`, { cache: "no-store" });
                     if (branchesRes.ok) {
                         const branchesData = await branchesRes.json();
-                        setBranches(branchesData.data || []);
+                        let activeBranches = branchesData.data || [];
+                        if (activeBranches.length === 0) {
+                            // Auto create default branch "Pusat"
+                            const createBranchRes = await fetch("/api/backend/branches", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    tenant_id: profileId,
+                                    name: "Pusat"
+                                })
+                            });
+                            if (createBranchRes.ok) {
+                                const newBranchData = await createBranchRes.json();
+                                if (newBranchData.data) {
+                                    activeBranches = [newBranchData.data];
+                                }
+                            }
+                        }
+                        setBranches(activeBranches);
                     }
                 } else {
-                    const singleBranchRes = await fetch(`/api/backend/branches?id=${branchId}`);
+                    const singleBranchRes = await fetch(`/api/backend/branches?id=${branchId}`, { cache: "no-store" });
                     if (singleBranchRes.ok) {
                         const branchData = await singleBranchRes.json();
                         setBranches(branchData.data || []);
@@ -688,26 +706,26 @@ export default function TenantProductsPage() {
                             {modalMode !== "adjust_stock" ? (
                                 <>
                                     {/* Baris 1: Nama Produk */}
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Nama Produk <span className="text-rose-500">*</span></label>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Nama Produk <span className="text-rose-500">*</span></label>
                                         <input 
                                             type="text" 
                                             required 
                                             value={formName}
                                             onChange={(e) => setFormName(e.target.value)}
                                             placeholder="Contoh: Royal Canin Kitten 2kg"
-                                            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-[#3c39d6]"
+                                            className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200"
                                         />
                                     </div>
 
-                                    {/* Baris 2: Kategori & Gambar (Input File Storage) */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Kategori Produk</label>
+                                    {/* Baris 2: Kategori & Gambar */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Kategori Produk</label>
                                             <select 
                                                 value={formCategoryId}
                                                 onChange={(e) => setFormCategoryId(e.target.value)}
-                                                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-700 focus:outline-none focus:border-[#3c39d6] cursor-pointer"
+                                                className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-zinc-700 focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200 cursor-pointer"
                                             >
                                                 <option value="">Pilih Kategori</option>
                                                 {categories.map((c) => (
@@ -715,21 +733,21 @@ export default function TenantProductsPage() {
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Gambar Produk</label>
-                                            <div className="flex items-center gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Gambar Produk</label>
+                                            <div className="flex items-center gap-4 bg-zinc-50/40 p-3 rounded-xl border border-zinc-200/60">
                                                 {formImageUrl ? (
                                                     <img 
                                                         src={formImageUrl} 
                                                         alt="Pratinjau" 
-                                                        className="w-16 h-16 object-cover rounded-xl border border-zinc-200 shrink-0" 
+                                                        className="w-14 h-14 object-cover rounded-lg border border-zinc-150 shrink-0" 
                                                     />
                                                 ) : (
-                                                    <div className="w-16 h-16 bg-zinc-100 rounded-xl flex items-center justify-center text-zinc-400 shrink-0 border border-zinc-200 border-dashed">
-                                                        <Package className="w-6 h-6" />
+                                                    <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center text-zinc-450 shrink-0 border border-zinc-200/80 border-dashed">
+                                                        <Package className="w-5 h-5 text-zinc-400" />
                                                     </div>
                                                 )}
-                                                <div className="flex flex-col gap-1.5">
+                                                <div className="flex flex-col gap-1">
                                                     <input 
                                                         type="file" 
                                                         accept="image/*" 
@@ -739,15 +757,15 @@ export default function TenantProductsPage() {
                                                     />
                                                     <label 
                                                         htmlFor="product-image-upload"
-                                                        className="px-4 py-2 bg-zinc-50 border border-zinc-200 text-zinc-700 hover:bg-zinc-100 transition-all font-bold text-xs rounded-xl cursor-pointer inline-flex items-center justify-center border-dashed"
+                                                        className="px-3.5 py-2 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 transition-all font-bold text-xs rounded-lg cursor-pointer inline-flex items-center justify-center shadow-sm"
                                                     >
-                                                        {uploadingImage ? "Mengunggah..." : "Pilih Gambar (Device)"}
+                                                        {uploadingImage ? "Mengunggah..." : "Pilih Gambar"}
                                                     </label>
                                                     {formImageUrl && (
                                                         <button
                                                             type="button"
                                                             onClick={() => setFormImageUrl("")}
-                                                            className="text-left text-[10px] text-rose-500 font-bold hover:underline"
+                                                            className="text-left text-[9px] text-rose-500 font-extrabold hover:underline"
                                                         >
                                                             Hapus Gambar
                                                         </button>
@@ -758,94 +776,120 @@ export default function TenantProductsPage() {
                                     </div>
 
                                     {/* Baris 3: Deskripsi */}
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Deskripsi Produk</label>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Deskripsi Produk</label>
                                         <textarea 
                                             value={formDescription}
                                             onChange={(e) => setFormDescription(e.target.value)}
                                             rows={2}
                                             placeholder="Penjelasan singkat mengenai spesifikasi produk..."
-                                            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-[#3c39d6]"
+                                            className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200"
                                         />
                                     </div>
 
                                     {/* Baris 4: Harga Modal & Jual */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Harga Modal / Beli (Rp)</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Harga Modal / Beli (Rp)</label>
                                             <input 
                                                 type="number" 
                                                 value={formBasePrice}
                                                 onChange={(e) => setFormBasePrice(e.target.value === "" ? "" : Number(e.target.value))}
-                                                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-800 focus:outline-none focus:border-[#3c39d6]"
+                                                className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-zinc-800 focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200"
                                             />
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Harga Jual Dasar (Rp)</label>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Harga Jual Dasar (Rp)</label>
                                             <input 
                                                 type="number" 
                                                 value={formSellPrice}
                                                 onChange={(e) => setFormSellPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                                                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-[#030037] font-bold focus:outline-none focus:border-[#3c39d6]"
+                                                className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-[#030037] font-bold focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200"
                                             />
                                         </div>
                                     </div>
 
                                     {/* Baris 5: Alokasi Distribusi Stok ke Cabang-cabang */}
-                                    <div className="space-y-3 pt-3 border-t border-zinc-100">
-                                        <h4 className="text-sm font-bold text-[#030037] flex items-center gap-1.5 font-heading">
-                                            <Store className="w-4 h-4 text-[#3c39d6]" />
-                                            {isOwner ? "Alokasi Ketersediaan Stok Cabang" : "Inisialisasi Stok Produk Lokal"}
-                                        </h4>
-                                        <div className="flex flex-col gap-3 bg-zinc-50 p-4 rounded-xl border border-zinc-200 max-h-64 overflow-y-auto">
-                                            {branches.map(b => (
-                                                <div key={b.id} className="p-3 bg-white rounded-xl border border-zinc-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-                                                    <span className="text-xs font-bold text-zinc-950">{b.name}</span>
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] text-zinc-950 font-black uppercase tracking-wider">Stok</span>
-                                                            <input 
-                                                                type="number" 
-                                                                value={branchStocksInput[b.id]?.stock ?? ""}
-                                                                onChange={(e) => setBranchStocksInput(prev => ({
-                                                                    ...prev,
-                                                                    [b.id]: {
-                                                                        ...prev[b.id],
-                                                                        stock: e.target.value === "" ? "" : Number(e.target.value)
-                                                                    }
-                                                                }))}
-                                                                className="w-20 bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs text-zinc-950 font-bold focus:outline-none focus:border-[#3c39d6] focus:bg-white transition-all"
-                                                            />
+                                    <div className="space-y-4 pt-4 border-t border-zinc-100">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-bold text-[#030037] flex items-center gap-2 font-heading">
+                                                <Store className="w-4 h-4 text-[#3c39d6]" />
+                                                {isOwner ? "Alokasi Ketersediaan Stok Cabang" : "Inisialisasi Stok Produk Lokal"}
+                                            </h4>
+                                            <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-[#3c39d6]/10 text-[#3c39d6] border border-[#3c39d6]/10 shadow-sm">
+                                                {branches.length} Cabang Terhubung
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="flex flex-col gap-3 bg-zinc-50/50 p-4 rounded-2xl border border-zinc-200/80 max-h-64 overflow-y-auto">
+                                            {branches.length === 0 ? (
+                                                <div className="p-6 text-center flex flex-col items-center justify-center gap-2">
+                                                    <div className="w-8 h-8 rounded-full bg-[#3c39d6]/5 border border-[#3c39d6]/10 flex items-center justify-center text-[#3c39d6] animate-pulse">
+                                                        <Store className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="text-xs text-zinc-550 font-bold">Memuat data cabang...</span>
+                                                </div>
+                                            ) : (
+                                                branches.map(b => (
+                                                    <div key={b.id} className="p-4 bg-white rounded-xl border border-zinc-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-[#3c39d6]/30 transition-all duration-200">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className="w-8 h-8 rounded-lg bg-[#3c39d6]/5 border border-[#3c39d6]/10 flex items-center justify-center text-[#3c39d6] shrink-0">
+                                                                <Building2 className="w-4 h-4" />
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-xs font-bold text-zinc-950 block">{b.name}</span>
+                                                                <span className="text-[9px] font-bold text-[#3c39d6] block uppercase tracking-wider">Cabang Aktif</span>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] text-zinc-950 font-black uppercase tracking-wider">Min Stok</span>
-                                                            <input 
-                                                                type="number" 
-                                                                value={branchStocksInput[b.id]?.min_stock ?? ""}
-                                                                onChange={(e) => setBranchStocksInput(prev => ({
-                                                                    ...prev,
-                                                                    [b.id]: {
-                                                                        ...prev[b.id],
-                                                                        min_stock: e.target.value === "" ? "" : Number(e.target.value)
-                                                                    }
-                                                                }))}
-                                                                className="w-20 bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs text-zinc-950 font-bold focus:outline-none focus:border-[#3c39d6] focus:bg-white transition-all"
-                                                            />
+                                                        
+                                                        <div className="flex items-center gap-4 shrink-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest">Stok</span>
+                                                                <input 
+                                                                    type="number" 
+                                                                    value={branchStocksInput[b.id]?.stock ?? ""}
+                                                                    placeholder="0"
+                                                                    onChange={(e) => setBranchStocksInput(prev => ({
+                                                                        ...prev,
+                                                                        [b.id]: {
+                                                                            ...prev[b.id],
+                                                                            stock: e.target.value === "" ? "" : Number(e.target.value)
+                                                                        }
+                                                                    }))}
+                                                                    className="w-20 bg-zinc-50/50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs text-zinc-950 font-bold text-center focus:outline-none focus:border-[#3c39d6] focus:bg-white focus:ring-4 focus:ring-[#3c39d6]/5 transition-all duration-200"
+                                                                />
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest font-sans">Min</span>
+                                                                <input 
+                                                                    type="number" 
+                                                                    value={branchStocksInput[b.id]?.min_stock ?? ""}
+                                                                    placeholder="0"
+                                                                    onChange={(e) => setBranchStocksInput(prev => ({
+                                                                        ...prev,
+                                                                        [b.id]: {
+                                                                            ...prev[b.id],
+                                                                            min_stock: e.target.value === "" ? "" : Number(e.target.value)
+                                                                        }
+                                                                    }))}
+                                                                    className="w-20 bg-zinc-50/50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs text-zinc-950 font-bold text-center focus:outline-none focus:border-[#3c39d6] focus:bg-white focus:ring-4 focus:ring-[#3c39d6]/5 transition-all duration-200"
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ))
+                                            )}
                                         </div>
                                     </div>
 
                                     {/* Toggle Is Active */}
-                                    <div className="flex items-center gap-3 pt-3">
+                                    <div className="flex items-center gap-3 pt-4 border-t border-zinc-100">
                                         <input 
                                             type="checkbox" 
                                             id="formIsActive"
                                             checked={formIsActive}
                                             onChange={(e) => setFormIsActive(e.target.checked)}
-                                            className="w-4 h-4 rounded text-[#3c39d6] focus:ring-[#3c39d6]"
+                                            className="w-4 h-4 rounded border-zinc-300 text-[#3c39d6] focus:ring-[#3c39d6] transition-all cursor-pointer"
                                         />
                                         <label htmlFor="formIsActive" className="text-xs font-bold text-zinc-700 cursor-pointer uppercase tracking-wider">Tampilkan di Etalase Toko Publik (Aktif)</label>
                                     </div>

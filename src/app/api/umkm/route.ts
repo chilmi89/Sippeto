@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
     try {
         const body = await req.json();
-        const { id, business_name, phone_number, address, full_name, bio, avatar_url, banner_url, username } = body;
+                const { id, business_name, phone_number, address, full_name, bio, avatar_url, banner_url, username, payment_qr } = body;
 
         if (!id) {
             return NextResponse.json({ error: "ID Profile tidak ditemukan" }, { status: 400 });
@@ -104,6 +104,7 @@ export async function PATCH(req: Request) {
                 banner_url: banner_url ?? undefined, // Memperbarui banner
                 username: cleanUsername, // Memperbarui username/slug toko
                 role_id: ownerRole?.id, // Pastikan role jadi OWNER saat data lengkap
+                payment_qr: payment_qr !== undefined ? payment_qr : undefined,
             },
             select: {
                 id: true,
@@ -119,6 +120,7 @@ export async function PATCH(req: Request) {
                 role_id: true,
                 username: true,
                 created_at: true,
+                payment_qr: true,
             },
         });
 
