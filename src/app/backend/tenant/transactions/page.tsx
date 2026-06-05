@@ -70,6 +70,12 @@ const RecorderContent = () => {
   const [reference, setReference] = useState("");
   const [description, setDescription] = useState("");
   
+  // Customer & Status States
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [orderStatus, setOrderStatus] = useState<number>(6);
+  
   // Branch States
   const [branches, setBranches] = useState<any[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
@@ -202,6 +208,10 @@ const RecorderContent = () => {
             setDate(tx.transaction_date.split("T")[0]);
             setReference(tx.reference_number || "");
             setDescription(tx.description || "");
+            setCustomerName(tx.customer_name || "");
+            setCustomerPhone(tx.customer_phone || "");
+            setCustomerAddress(tx.customer_address || "");
+            setOrderStatus(tx.order_status !== null ? Number(tx.order_status) : 6);
             if (tx.branch_id) {
                 setSelectedBranchId(tx.branch_id);
             }
@@ -220,6 +230,10 @@ const RecorderContent = () => {
             setReference(`TRX-${now.getTime().toString().slice(-6)}`);
             setItems([{ id: Math.random().toString(), name: "", amount: 0, category_id: "", payment_method_id: "", type: "pemasukan" }]);
             setDescription("");
+            setCustomerName("");
+            setCustomerPhone("");
+            setCustomerAddress("");
+            setOrderStatus(6);
         }
 
       } catch (err) {
@@ -287,6 +301,10 @@ const RecorderContent = () => {
           reference_number: reference,
           transaction_date: date,
           description,
+          customer_name: customerName || null,
+          customer_phone: customerPhone || null,
+          customer_address: customerAddress || null,
+          order_status: orderStatus,
           items: items.map(({ name, amount, category_id, payment_method_id, type }) => ({
             name,
             amount: Number(amount),
@@ -300,13 +318,17 @@ const RecorderContent = () => {
       if (res.ok) {
         toast.success(editId ? "Transaksi diperbarui!" : "Transaksi disimpan!");
         if (editId) {
-            router.push("/backend/tenant/transactions");
+            router.push("/backend/tenant/transactions/history");
         } else {
             // Reset
             fetchRecent(profileId, selectedBranchId);
             setReference(`TRX-${Date.now().toString().slice(-6)}`);
             setItems([{ id: Math.random().toString(), name: "", amount: 0, category_id: "", payment_method_id: paymentMethods[0]?.id || "", type: "pemasukan" }]);
             setDescription("");
+            setCustomerName("");
+            setCustomerPhone("");
+            setCustomerAddress("");
+            setOrderStatus(6);
         }
       } else {
         const err = await res.json();
@@ -438,6 +460,65 @@ const RecorderContent = () => {
                      ))}
                    </select>
                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400 pointer-events-none" />
+                </div>
+             </div>
+          </div>
+
+          {/* Informasi Pembeli & Status (Opsional) */}
+          <div className="bg-white border border-zinc-200 p-4 rounded-xl space-y-4 shadow-sm">
+             <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+                <span className="text-[10px] font-black text-[#030037] uppercase tracking-widest flex items-center gap-2">
+                   Informasi Pembeli & Status Alur (Opsional)
+                </span>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 lg:gap-4">
+                <div className="space-y-1">
+                   <label className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-1">Nama Pembeli</label>
+                   <input 
+                     type="text"
+                     placeholder="Nama pelanggan..."
+                     className="w-full px-4 py-2 lg:py-2.5 bg-[#f8f9fa] border border-zinc-200 rounded-xl text-[11px] lg:text-xs font-bold text-black focus:ring-4 focus:ring-primary/5 focus:bg-white outline-none transition-all shadow-sm"
+                     value={customerName}
+                     onChange={(e) => setCustomerName(e.target.value)}
+                   />
+                </div>
+                <div className="space-y-1">
+                   <label className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-1">No. Telepon / WA</label>
+                   <input 
+                     type="text"
+                     placeholder="08XXXXXXXXXX"
+                     className="w-full px-4 py-2 lg:py-2.5 bg-[#f8f9fa] border border-zinc-200 rounded-xl text-[11px] lg:text-xs font-bold text-black focus:ring-4 focus:ring-primary/5 focus:bg-white outline-none transition-all shadow-sm"
+                     value={customerPhone}
+                     onChange={(e) => setCustomerPhone(e.target.value)}
+                   />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                   <label className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-1">Alamat Pengiriman</label>
+                   <input 
+                     type="text"
+                     placeholder="Alamat lengkap tujuan..."
+                     className="w-full px-4 py-2 lg:py-2.5 bg-[#f8f9fa] border border-zinc-200 rounded-xl text-[11px] lg:text-xs font-bold text-black focus:ring-4 focus:ring-primary/5 focus:bg-white outline-none transition-all shadow-sm"
+                     value={customerAddress}
+                     onChange={(e) => setCustomerAddress(e.target.value)}
+                   />
+                </div>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4 pt-1">
+                <div className="space-y-1">
+                   <label className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-1">Status Alur Pesanan</label>
+                   <select
+                     className="w-full px-4 py-2 lg:py-2.5 bg-[#f8f9fa] border border-zinc-200 rounded-xl text-[11px] lg:text-xs font-bold text-black focus:ring-4 focus:ring-primary/5 focus:bg-white outline-none transition-all shadow-sm cursor-pointer"
+                     value={orderStatus}
+                     onChange={(e) => setOrderStatus(Number(e.target.value))}
+                   >
+                     <option value={1}>1. Pesanan Baru (Biru)</option>
+                     <option value={2}>2. Pesanan Diterima (Telah Dikonfirmasi)</option>
+                     <option value={3}>3. Pesanan Diproses (Packing)</option>
+                     <option value={4}>4. Pesanan Ready (Packing)</option>
+                     <option value={5}>5. Pesanan Dikirim atau Diambil</option>
+                     <option value={6}>6. Pesanan Selesai / Lunas (Default)</option>
+                     <option value={7}>7. Pesanan dalam Penanganan Khusus</option>
+                   </select>
                 </div>
              </div>
           </div>
