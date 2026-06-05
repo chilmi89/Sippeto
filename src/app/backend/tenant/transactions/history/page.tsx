@@ -33,7 +33,21 @@ interface TransactionGroup {
   description: string | null;
   created_at: string;
   transaction_items: any[];
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  customer_address?: string | null;
+  order_status?: number | null;
 }
+
+const ORDER_STATUSES = [
+  { id: 1, label: "Pesanan Baru", color: "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50" },
+  { id: 2, label: "Diterima & Dikonfirmasi", color: "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50" },
+  { id: 3, label: "Diproses (Packing)", color: "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50" },
+  { id: 4, label: "Ready (Packing)", color: "bg-cyan-50 text-cyan-600 border-cyan-100 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-900/50" },
+  { id: 5, label: "Dikirim / Diambil", color: "bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50" },
+  { id: 6, label: "Selesai / Lunas", color: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50" },
+  { id: 7, label: "Penanganan Khusus", color: "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50" },
+];
 
 const TransactionHistoryPage = () => {
   const router = useRouter();
@@ -118,6 +132,24 @@ const TransactionHistoryPage = () => {
         fetchTransactions();
       } else {
         toast.error("Gagal menghapus transaksi");
+      }
+    } catch (err) {
+      toast.error("Kesalahan jaringan");
+    }
+  };
+
+  const handleStatusChange = async (id: string, newStatus: number) => {
+    try {
+      const res = await fetch("/api/backend/transaction/group", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, order_status: newStatus })
+      });
+      if (res.ok) {
+        toast.success("Status pesanan diperbarui!");
+        setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, order_status: newStatus } : tx));
+      } else {
+        toast.error("Gagal memperbarui status");
       }
     } catch (err) {
       toast.error("Kesalahan jaringan");
@@ -213,11 +245,11 @@ const TransactionHistoryPage = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-zinc-50/50 border-b border-zinc-50">
+                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Nota</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Nama Pembeli</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-center">Detail</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Transaksi</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Waktu Entry</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Pemasukan</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Pengeluaran</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Status/Net</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Status</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-center">Aksi</th>
               </tr>
             </thead>
@@ -231,6 +263,7 @@ const TransactionHistoryPage = () => {
               ) : transactions.length > 0 ? (
                 transactions.map((tx) => (
                   <tr key={tx.id} className="group hover:bg-zinc-50/50 transition-colors">
+                    {/* 1. NOTA */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-400 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all">
@@ -238,41 +271,98 @@ const TransactionHistoryPage = () => {
                         </div>
                         <div className="flex flex-col">
                            <span className="text-xs font-black text-[#030037] uppercase tracking-tight">#{tx.reference_number || tx.id.slice(0, 8)}</span>
-                           <span className="text-[10px] font-medium text-zinc-400 truncate max-w-[120px]">{tx.description || "Tanpa catatan"}</span>
+                           <span className="text-[10px] font-medium text-zinc-400">
+                              {new Date(tx.transaction_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                           </span>
                         </div>
                       </div>
                     </td>
+
+                    {/* 2. NAMA PEMBELI */}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                         <span className="text-xs font-bold text-zinc-800">
+                            {tx.customer_name || "Manual / Operasional"}
+                         </span>
+                         {tx.customer_phone && (
+                            <span className="text-[9px] font-medium text-zinc-400">{tx.customer_phone}</span>
+                         )}
+                      </div>
+                    </td>
+
+                    {/* 3. DETAIL */}
+                    <td className="px-6 py-4 text-center">
+                       <button 
+                          onClick={() => setSelectedTx(tx)} 
+                          className="px-3 py-1.5 bg-zinc-50 border border-zinc-100 hover:bg-primary hover:text-white hover:border-primary text-zinc-600 rounded-lg text-[10px] font-bold shadow-sm transition-all"
+                       >
+                          Lihat Detail
+                       </button>
+                    </td>
+
+                    {/* 4. TRANSAKSI */}
                     <td className="px-6 py-4">
                        <div className="flex flex-col">
-                          <span className="text-[11px] font-bold text-zinc-600">
-                             {new Date(tx.transaction_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
-                          <span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest">FINANCIAL RECORD</span>
+                          {Number(tx.total_income) > 0 && (
+                            <span className="text-xs font-black text-emerald-600">
+                               + {formatCurrency(Number(tx.total_income))}
+                            </span>
+                          )}
+                          {Number(tx.total_expense) > 0 && (
+                            <span className="text-xs font-black text-rose-600">
+                               - {formatCurrency(Number(tx.total_expense))}
+                            </span>
+                          )}
+                          {Number(tx.total_income) === 0 && Number(tx.total_expense) === 0 && (
+                            <span className="text-xs font-black text-zinc-400">
+                               {formatCurrency(0)}
+                            </span>
+                          )}
                        </div>
                     </td>
+
+                    {/* 5. STATUS */}
                     <td className="px-6 py-4">
-                       <span className="text-xs font-black text-emerald-600">{formatCurrency(tx.total_income)}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                       <span className="text-xs font-black text-rose-600">{formatCurrency(tx.total_expense)}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                       <div className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${tx.net_balance >= 0 ? "bg-emerald-500" : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.3)]"}`} />
-                          <span className={`text-[10px] font-black uppercase tracking-tighter ${tx.net_balance >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                             {tx.net_balance >= 0 ? 'Surplus' : 'Defisit'}
-                          </span>
+                       <div className="relative flex items-center">
+                          <select
+                            value={tx.order_status ?? 6}
+                            onChange={(e) => handleStatusChange(tx.id, Number(e.target.value))}
+                            className={`text-[9px] font-black uppercase tracking-tight py-1 pl-2.5 pr-6 rounded-full border cursor-pointer outline-none transition-all appearance-none ${
+                              ORDER_STATUSES.find(s => s.id === (tx.order_status ?? 6))?.color || "bg-zinc-50 text-zinc-600 border-zinc-100"
+                            }`}
+                          >
+                            {ORDER_STATUSES.map(status => (
+                              <option key={status.id} value={status.id} className="bg-white text-zinc-900 font-bold uppercase text-[9px]">
+                                {status.label}
+                              </option>
+                            ))}
+                          </select>
                        </div>
                     </td>
+
+                    {/* 6. AKSI (EDIT & DELETE) */}
                     <td className="px-6 py-4 text-center">
                        <div className="flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => setSelectedTx(tx)} className="p-2 bg-white border border-zinc-100 rounded-lg text-zinc-400 hover:text-primary hover:border-primary/20 shadow-sm transition-all">
-                             <Eye className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={() => router.push(`/backend/tenant/transactions?id=${tx.id}`)} className="p-2 bg-white border border-zinc-100 rounded-lg text-zinc-400 hover:text-amber-500 hover:border-amber-100 shadow-sm transition-all">
+                          <button 
+                             onClick={() => {
+                                // Jika transaksi ini berasal dari POS (ada product_id), arahkan ke halaman POS
+                                const isPOSTransaction = tx.transaction_items?.some((item: any) => item.product_id);
+                                if (isPOSTransaction) {
+                                  router.push(`/backend/tenant/sales?id=${tx.id}`);
+                                } else {
+                                  router.push(`/backend/tenant/transactions?id=${tx.id}`);
+                                }
+                              }} 
+                             className="p-2 bg-white border border-zinc-100 rounded-lg text-zinc-400 hover:text-amber-500 hover:border-amber-100 shadow-sm transition-all"
+                             title="Edit"
+                          >
                              <Edit2 className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => handleDelete(tx.id)} className="p-2 bg-white border border-zinc-100 rounded-lg text-zinc-400 hover:text-rose-500 hover:border-rose-100 shadow-sm transition-all">
+                          <button 
+                             onClick={() => handleDelete(tx.id)} 
+                             className="p-2 bg-white border border-zinc-100 rounded-lg text-zinc-400 hover:text-rose-500 hover:border-rose-100 shadow-sm transition-all"
+                             title="Hapus"
+                          >
                              <Trash2 className="w-3.5 h-3.5" />
                           </button>
                        </div>
@@ -333,7 +423,7 @@ const TransactionHistoryPage = () => {
               </div>
 
               <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
-                 <div className="grid grid-cols-2 gap-8">
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-zinc-100 pb-6">
                     <div className="space-y-1">
                        <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Pemasukan</span>
                        <p className="text-xl font-black text-emerald-600">{formatCurrency(selectedTx.total_income)}</p>
@@ -342,7 +432,48 @@ const TransactionHistoryPage = () => {
                        <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Pengeluaran</span>
                        <p className="text-xl font-black text-rose-600">{formatCurrency(selectedTx.total_expense)}</p>
                     </div>
+                    <div className="space-y-1">
+                       <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Status Alur</span>
+                       <div>
+                          <span className={`inline-block text-[10px] font-black uppercase tracking-tight py-1 px-3 rounded-full border ${
+                            ORDER_STATUSES.find(s => s.id === (selectedTx.order_status ?? 6))?.color || "bg-zinc-50 text-zinc-600 border-zinc-100"
+                          }`}>
+                            {ORDER_STATUSES.find(s => s.id === (selectedTx.order_status ?? 6))?.label || "Selesai"}
+                          </span>
+                       </div>
+                    </div>
                  </div>
+
+                 {/* Customer Information (Only show if it's an online order or has customer name) */}
+                 {(selectedTx.customer_name || selectedTx.customer_phone || selectedTx.customer_address) && (
+                    <div className="space-y-3 bg-[#f8f9fa] border border-zinc-200/60 p-5 rounded-2xl shadow-sm">
+                       <h5 className="text-[10px] font-black text-[#030037] uppercase tracking-widest border-b border-zinc-250/50 pb-1.5 flex items-center gap-2">
+                          Informasi Pembeli
+                       </h5>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold">
+                          {selectedTx.customer_name && (
+                             <div className="space-y-0.5">
+                                <span className="text-[8px] text-zinc-400 uppercase block">Nama Pembeli</span>
+                                <span className="text-zinc-800">{selectedTx.customer_name}</span>
+                             </div>
+                          )}
+                          {selectedTx.customer_phone && (
+                             <div className="space-y-0.5">
+                                <span className="text-[8px] text-zinc-400 uppercase block">No. Telepon / WA</span>
+                                <a href={`https://wa.me/${selectedTx.customer_phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                                   {selectedTx.customer_phone}
+                                </a>
+                             </div>
+                          )}
+                          {selectedTx.customer_address && (
+                             <div className="space-y-0.5 sm:col-span-2">
+                                <span className="text-[8px] text-zinc-400 uppercase block">Alamat Pengiriman</span>
+                                <span className="text-zinc-600 font-medium">{selectedTx.customer_address}</span>
+                             </div>
+                          )}
+                       </div>
+                    </div>
+                 )}
 
                  <div className="space-y-3">
                     <h5 className="text-[10px] font-black text-[#030037] uppercase tracking-widest border-b border-zinc-100 pb-2">Item Terkait</h5>
