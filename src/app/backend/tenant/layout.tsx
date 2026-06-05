@@ -21,7 +21,7 @@ function TenantLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div 
         className={`flex-1 flex flex-col h-full overflow-hidden relative transition-all duration-300 ${
-          mounted && isOpen ? "lg:ml-72" : "lg:ml-0"
+          mounted && isOpen ? "lg:ml-72" : "lg:ml-[76px]"
         }`}
         suppressHydrationWarning
       >
