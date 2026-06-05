@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  TrendingUp, TrendingDown, Wallet, DollarSign, ArrowRight, Receipt, Calendar, Info, ChevronDown, Copy, Check, ExternalLink, Store
+  TrendingUp, TrendingDown, Wallet, DollarSign, ArrowRight, Receipt, Calendar, Info, ChevronDown
 } from "lucide-react";
 import FullPageLoader from "@/components/layout/FullPageLoader";
 import SectionLoader from "@/components/layout/SectionLoader";
@@ -167,20 +167,10 @@ export default function TenantDashboard() {
   const [recentTx, setRecentTx] = useState<RecentTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFiltering, setIsFiltering] = useState(false);
-  const [copied, setCopied] = useState(false);
-  
   // Branch Filter States
   const [branches, setBranches] = useState<any[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string>("all");
   const [userBranchId, setUserBranchId] = useState<string | null>(null);
-
-  const handleCopyLink = () => {
-    if (!profile?.username) return;
-    const storeLink = `${window.location.origin}/store/${profile.username}`;
-    navigator.clipboard.writeText(storeLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -305,84 +295,7 @@ export default function TenantDashboard() {
         </div>
       </div>
 
-      {/* Marketplace Link Banner */}
-      {!isLoading && (
-        <div className="w-full">
-          {profile?.username ? (
-            <div className="bg-gradient-to-r from-emerald-500/[0.04] to-teal-500/[0.02] border border-emerald-500/20 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
-              <div className="flex items-start gap-4 min-w-0 w-full md:w-auto">
-                <div className="p-3.5 bg-emerald-500/10 text-emerald-600 rounded-xl mt-1 md:mt-0 shrink-0">
-                  <Store className="w-6 h-6" />
-                </div>
-                <div className="space-y-1 min-w-0 flex-1">
-                  <h3 className="text-sm font-bold text-zinc-950 flex items-center gap-1.5 leading-none">
-                    🌟 Toko E-Catalog WhatsApp Anda Aktif!
-                  </h3>
-                  <p className="text-xs text-zinc-500 font-medium">
-                    Pelanggan sekarang dapat melihat katalog produk dan melakukan pemesanan langsung ke nomor WhatsApp Anda.
-                  </p>
-                  <div className="pt-2 flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Link Toko Anda:</span>
-                    <span className="inline-flex items-center px-3 py-1 bg-emerald-500/5 border border-emerald-500/15 rounded-lg text-xs font-bold text-emerald-600 font-mono tracking-tight select-all break-all max-w-full">
-                      {typeof window !== 'undefined' ? `${window.location.origin}/store/${profile.username}` : `/store/${profile.username}`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 w-full md:w-auto shrink-0 self-stretch md:self-center">
-                <button
-                  onClick={handleCopyLink}
-                  className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 text-xs font-bold rounded-xl shadow-sm transition-all duration-200"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-4 h-4 text-emerald-500" />
-                      <span className="text-emerald-600 font-bold">Tersalin!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4 text-zinc-400" />
-                      <span>Salin Link</span>
-                    </>
-                  )}
-                </button>
-                <a
-                  href={`/store/${profile.username}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white hover:bg-emerald-600 text-xs font-bold rounded-xl shadow-md shadow-primary/10 transition-all duration-200"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>Kunjungi Toko</span>
-                </a>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-gradient-to-r from-amber-500/[0.04] to-orange-500/[0.02] border border-amber-500/20 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="p-3.5 bg-amber-500/10 text-amber-600 rounded-xl mt-1 md:mt-0 shrink-0">
-                  <Info className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-bold text-zinc-950 flex items-center gap-1.5 leading-none">
-                    ⚠️ Toko E-Catalog WhatsApp Belum Aktif!
-                  </h3>
-                  <p className="text-xs text-zinc-500 font-medium">
-                    Anda belum menentukan username/slug unik untuk E-Catalog toko Anda. Pelanggan belum bisa mengakses etalase produk online Anda.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => router.push("/backend/tenant/profile")}
-                className="w-full md:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-3 bg-amber-600 text-white hover:bg-amber-700 text-xs font-bold rounded-xl shadow-md shadow-amber-600/10 transition-all duration-200"
-              >
-                <span>Atur Username Toko</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+
 
       {/* Charts 2x2 */}
       <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 transition-all duration-300 ease-in-out ${
