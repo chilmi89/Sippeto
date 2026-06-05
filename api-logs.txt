@@ -47,3 +47,60 @@
 2026-06-02T15:59:59.612Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
 2026-06-02T17:09:40.752Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
 2026-06-02T17:11:01.528Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T18:43:31.702Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T18:43:33.252Z - GET branches error: PrismaClientUnknownRequestError: 
+Invalid `prisma.branches.findMany()` invocation:
+
+
+Error in connector: Error querying the database: FATAL: (EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15
+2026-06-02T18:43:34.902Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T18:43:53.000Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-02T18:43:55.036Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:03:34.326Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:03:37.055Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:03:45.353Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:03:47.678Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:08:43.606Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:08:52.503Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:09:00.606Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:09:33.003Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:14:22.404Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:14:47.654Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:14:50.108Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:16:22.099Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:16:24.958Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:16:54.873Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:18:58.778Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-04T11:19:01.007Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T03:42:38.603Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T03:42:42.213Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T03:42:49.694Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T03:42:52.374Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T03:46:58.491Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T04:56:34.560Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T04:56:36.690Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T04:56:47.657Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T04:56:49.768Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:00:44.680Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:04:14.455Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:04:56.328Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:05:20.954Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:05:22.987Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:05:53.600Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:28:42.746Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:28:45.784Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:29:00.346Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:29:02.924Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:29:40.788Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:29:43.173Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:30:24.713Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:30:26.687Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:35:02.007Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:35:04.020Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:35:40.394Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:35:42.324Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:36:48.686Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T05:36:50.700Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T06:37:55.441Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T06:41:46.564Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-05T06:41:48.628Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339

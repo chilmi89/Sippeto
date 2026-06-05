@@ -30,6 +30,15 @@ type NavItem = {
 
 const tenantNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/backend/tenant" },
+  { 
+    icon: ShoppingCart, 
+    label: "POS Kasir (Penjualan)", 
+    href: "/backend/tenant/sales",
+    subItems: [
+      { label: "Buka Kasir", href: "/backend/tenant/sales" },
+      { label: "Riwayat Penjualan", href: "/backend/tenant/sales/history" },
+    ]
+  },
   { icon: Package, label: "Kelola Produk", href: "/backend/tenant/products", permission: "kelola_produk" },
   { icon: Sliders, label: "Kelola Stok", href: "/backend/tenant/stocks", permission: "kelola_stok" },
   { icon: Store, label: "Kelola Cabang", href: "/backend/tenant/branches", permission: "kelola_cabang" },
