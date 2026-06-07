@@ -3,36 +3,42 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 
-export const WelcomeSection = () => {
+export const WelcomeSection = ({ theme = 'dark' }: { theme?: 'light' | 'dark' }) => {
+  const isLight = theme === 'light';
+  
   return (
-    <div className="hidden lg:flex flex-col text-white space-y-6 animate-in fade-in slide-in-from-left duration-1000">
+    <div className={`hidden lg:flex flex-col space-y-6 animate-in fade-in slide-in-from-left duration-1000 ${isLight ? 'text-slate-800' : 'text-white'}`}>
       <div className="space-y-3">
         <h1 className="text-4xl xl:text-5xl font-black leading-[1.1] tracking-tight">
-          Selamat Datang <br /> di <span className="text-white drop-shadow-md">SIPPETO</span> 🚀
+          Selamat Datang <br /> di <span className={isLight ? 'text-primary' : 'text-white drop-shadow-md'}>SIPPETO</span> 🚀
         </h1>
-        <p className="text-sm xl:text-base text-white/80 font-medium leading-relaxed max-w-md">
+        <p className={`text-sm xl:text-base font-medium leading-relaxed max-w-md ${isLight ? 'text-slate-600' : 'text-white/80'}`}>
 
           Sistem Pencatatan Penjualan TOYORESMI
         </p>
-        <p className="text-sm xl:text-base text-white/80 font-medium leading-relaxed max-w-md">
+        <p className={`text-sm xl:text-base font-medium leading-relaxed max-w-md ${isLight ? 'text-slate-600' : 'text-white/80'}`}>
           Solusi modern untuk manajemen dan pertumbuhan bisnis lokal Anda di Desa Toyoresmi
         </p>
       </div>
 
       <div className="relative w-full max-w-[340px] xl:max-w-[380px] aspect-square lg:aspect-[4/3] group pt-4">
         {/* Main Glass Card */}
-        <div className="absolute inset-0 bg-white/10 backdrop-blur-3xl rounded-[2.5rem] border border-white/20 shadow-2xl p-6 xl:p-8 flex flex-col space-y-6 animate-float ring-1 ring-white/10">
+        <div className={`absolute inset-0 backdrop-blur-3xl rounded-[2.5rem] border shadow-2xl p-6 xl:p-8 flex flex-col space-y-6 animate-float ring-1 ${
+          isLight 
+            ? 'bg-white/80 border-slate-200/60 shadow-slate-200/50 ring-slate-100' 
+            : 'bg-white/10 border-white/20 shadow-2xl ring-white/10'
+        }`}>
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Sales Growth</p>
+              <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isLight ? 'text-slate-400' : 'text-white/40'}`}>Sales Growth</p>
               <div className="flex items-baseline gap-2">
-                <h3 className="text-3xl font-black text-white tracking-tighter">Rp 82.5M</h3>
-                <span className="text-[10px] font-bold text-emerald-400 opacity-100">+28.4%</span>
+                <h3 className={`text-3xl font-black tracking-tighter ${isLight ? 'text-slate-800' : 'text-white'}`}>Rp 82.5M</h3>
+                <span className="text-[10px] font-bold text-emerald-500 opacity-100">+28.4%</span>
               </div>
             </div>
             <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20 relative group-hover:scale-110 transition-transform">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <div className="absolute inset-0 bg-emerald-400/20 blur-md rounded-full animate-pulse" />
+              <Sparkles className="w-4 h-4 text-emerald-500" />
+              <div className="absolute inset-0 bg-emerald-500/20 blur-md rounded-full animate-pulse" />
             </div>
           </div>
 
@@ -41,7 +47,7 @@ export const WelcomeSection = () => {
             {/* Perspective Lines */}
             <div className="absolute inset-0 flex flex-col justify-between opacity-10 pointer-events-none">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="w-full h-[1px] bg-white" />
+                <div key={i} className={`w-full h-[1px] ${isLight ? 'bg-slate-350' : 'bg-white'}`} />
               ))}
             </div>
             
@@ -56,8 +62,8 @@ export const WelcomeSection = () => {
                 <div className="w-full relative flex flex-col items-center h-full justify-end">
                   {/* Outer Bar (Shadow/Glow) */}
                   <div 
-                    className="w-full rounded-2xl bg-white/5 absolute bottom-0 transition-all duration-1000 ease-out" 
-                    style={{ height: '100%' }} 
+                    className={`w-full rounded-2xl absolute bottom-0 transition-all duration-1000 ease-out ${isLight ? 'bg-slate-100' : 'bg-white/5'}`}
+                    style={{ height: '105%' }} 
                   />
                   
                   {/* Inner Bar (Gradient Content) */}
@@ -73,7 +79,7 @@ export const WelcomeSection = () => {
                   </div>
                 </div>
 
-                <span className="absolute -bottom-7 text-[9px] font-black text-white/30 tracking-tighter uppercase whitespace-nowrap">
+                <span className={`absolute -bottom-7 text-[9px] font-black tracking-tighter uppercase whitespace-nowrap ${isLight ? 'text-slate-400' : 'text-white/30'}`}>
                   {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][i]}
                 </span>
               </div>
@@ -81,22 +87,30 @@ export const WelcomeSection = () => {
           </div>
         </div>
 
-        {/* Small Floating Card: Sales Point */}
-        <div className="absolute -top-4 -right-4 w-32 h-20 bg-white/10 backdrop-blur-2xl rounded-2xl border border-white/20 shadow-xl p-4 flex flex-col justify-center animate-float [animation-delay:2s] ring-1 ring-white/10">
-          <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Volatility</p>
+        {/* Small Floating Card: Volatility */}
+        <div className={`absolute -top-4 -right-4 w-32 h-20 backdrop-blur-2xl rounded-2xl border shadow-xl p-4 flex flex-col justify-center animate-float [animation-delay:2s] ring-1 ${
+          isLight 
+            ? 'bg-white/80 border-slate-200/60 ring-slate-100 text-slate-800' 
+            : 'bg-white/10 border-white/20 ring-white/10 text-white'
+        }`}>
+          <p className={`text-[9px] font-bold uppercase tracking-widest ${isLight ? 'text-slate-400' : 'text-white/40'}`}>Volatility</p>
           <div className="flex items-center gap-2">
-            <p className="text-lg font-black text-white text-rose-400">Low</p>
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+            <p className="text-lg font-black text-rose-500">Low</p>
+            <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
           </div>
         </div>
 
         {/* Small Floating Card: Progress */}
-        <div className="absolute -bottom-2 -left-6 w-38 h-16 bg-white/10 backdrop-blur-2xl rounded-2xl border border-white/20 shadow-xl p-3 flex flex-col justify-between animate-float [animation-delay:4s] ring-1 ring-white/10">
-          <div className="flex justify-between items-center text-[8px] font-black text-white/40 uppercase">
+        <div className={`absolute -bottom-2 -left-6 w-38 h-16 backdrop-blur-2xl rounded-2xl border shadow-xl p-3 flex flex-col justify-between animate-float [animation-delay:4s] ring-1 ${
+          isLight 
+            ? 'bg-white/80 border-slate-200/60 ring-slate-100' 
+            : 'bg-white/10 border-white/20 ring-white/10'
+        }`}>
+          <div className={`flex justify-between items-center text-[8px] font-black uppercase ${isLight ? 'text-slate-400' : 'text-white/40'}`}>
             <span>Profit Margin</span>
-            <span className="text-emerald-400">22%</span>
+            <span className="text-emerald-500">22%</span>
           </div>
-          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+          <div className={`w-full h-1.5 rounded-full overflow-hidden border ${isLight ? 'bg-slate-100 border-slate-200/40' : 'bg-white/5 border-white/5'}`}>
             <div className="h-full w-[72%] bg-gradient-to-r from-emerald-500 to-teal-300 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.3)]" />
           </div>
         </div>
