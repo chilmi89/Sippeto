@@ -21,7 +21,7 @@ const jakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Sippeto Admin",
+  title: "Sippeto - Online",
   description: "Modern bisnis Management Dashboard",
 };
 

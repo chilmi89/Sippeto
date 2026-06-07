@@ -135,3 +135,9 @@ Error in connector: Error querying the database: FATAL: (EMAXCONNSESSION) max cl
 2026-06-05T07:36:34.004Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
 2026-06-05T07:40:40.647Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
 2026-06-05T07:40:42.596Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-06T17:54:54.080Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-06T17:54:55.414Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-06T17:59:51.968Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-06T17:59:54.376Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-06T18:00:26.359Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-06T18:00:28.039Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
