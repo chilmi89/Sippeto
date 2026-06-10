@@ -35,7 +35,7 @@ model product_categories {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model payment_methods {
-  id                String              @id @default(uuid()) @db.Uuid
+  id                String               @id @default(uuid()) @db.Uuid
   profile_id        String?             @db.Uuid
   name              String              @db.VarChar(50)
   is_active         Boolean?            @default(true)

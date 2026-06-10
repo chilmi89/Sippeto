@@ -18,10 +18,16 @@ const RegisterPage = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-animate flex flex-col font-sans selection:bg-white/20 selection:text-white relative overflow-hidden" suppressHydrationWarning>
-      {/* Background Decorative Elements */}
-      <div className="absolute top-[15%] left-[-10%] w-[50%] h-[50%] bg-white/5 blur-[120px] rounded-full animate-pulse z-0" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-brand-accent/10 blur-[120px] rounded-full animate-pulse delay-700 z-0" />
+    <div
+      className="min-h-screen w-full flex flex-col font-sans selection:bg-white/20 selection:text-white relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(135deg, #030037 0%, #0f2166 20%, #1a56db 50%, #0ea5e9 80%, #06b6d4 100%)'
+      }}
+      suppressHydrationWarning
+    >
+      {/* Ambient glow overlays */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[50%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse z-0 pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[50%] bg-cyan-400/20 blur-[100px] rounded-full animate-pulse delay-700 z-0 pointer-events-none" />
 
       {/* Navbar Container */}
       <header className="shrink-0 relative z-20">
