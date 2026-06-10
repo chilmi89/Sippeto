@@ -396,19 +396,19 @@ const RecorderContent = () => {
             </p>
           </div>
 
-          <div className="flex flex-row md:flex-col items-center md:items-end gap-2.5">
-             <div className="bg-[#f8f9fa] border border-zinc-200 p-2 lg:p-3 rounded-xl flex flex-row md:flex-col items-center gap-3 md:gap-1 min-w-0 md:min-w-[130px] shadow-sm flex-1">
-                <span className="hidden md:block text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Database Sync</span>
-                <div className="flex items-center gap-2 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100/50">
+          <div className="flex flex-row items-center gap-2">
+             <div className="bg-[#f8f9fa] border border-zinc-200 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm">
+                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Database Sync</span>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100/50">
                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
                    <span className="text-[8px] font-black uppercase tracking-tight whitespace-nowrap">
                       Online
                    </span>
                 </div>
              </div>
-             <button onClick={() => router.push("/backend/tenant/transactions/history")} className="flex items-center gap-2 px-4 py-2 bg-[#f8f9fa] border border-zinc-200 rounded-xl text-[10px] lg:text-[11px] font-bold text-zinc-900 shadow-sm hover:bg-zinc-100 transition-all group">
+             <button onClick={() => router.push("/backend/tenant/transactions/history")} className="flex items-center gap-2 px-4 py-2 bg-[#f8f9fa] border border-zinc-200 rounded-xl text-[10px] lg:text-[11px] font-bold text-zinc-900 shadow-sm hover:bg-zinc-100 transition-all group h-[34px]">
                 <History className="w-3.5 h-3.5 text-primary group-hover:rotate-12 transition-transform" /> 
-                <span className="hidden sm:inline text-xs">Pusat Riwayat</span>
+                <span className="text-xs">Pusat Riwayat</span>
              </button>
           </div>
         </div>
@@ -464,64 +464,7 @@ const RecorderContent = () => {
              </div>
           </div>
 
-          {/* Informasi Pembeli & Status (Opsional) */}
-          <div className="bg-white border border-zinc-200 p-4 rounded-xl space-y-4 shadow-sm">
-             <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-                <span className="text-[10px] font-black text-[#030037] uppercase tracking-widest flex items-center gap-2">
-                   Informasi Pembeli & Status Alur (Opsional)
-                </span>
-             </div>
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 lg:gap-4">
-                <div className="space-y-1">
-                   <label className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-1">Nama Pembeli</label>
-                   <input 
-                     type="text"
-                     placeholder="Nama pelanggan..."
-                     className="w-full px-4 py-2 lg:py-2.5 bg-[#f8f9fa] border border-zinc-200 rounded-xl text-[11px] lg:text-xs font-bold text-black focus:ring-4 focus:ring-primary/5 focus:bg-white outline-none transition-all shadow-sm"
-                     value={customerName}
-                     onChange={(e) => setCustomerName(e.target.value)}
-                   />
-                </div>
-                <div className="space-y-1">
-                   <label className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-1">No. Telepon / WA</label>
-                   <input 
-                     type="text"
-                     placeholder="08XXXXXXXXXX"
-                     className="w-full px-4 py-2 lg:py-2.5 bg-[#f8f9fa] border border-zinc-200 rounded-xl text-[11px] lg:text-xs font-bold text-black focus:ring-4 focus:ring-primary/5 focus:bg-white outline-none transition-all shadow-sm"
-                     value={customerPhone}
-                     onChange={(e) => setCustomerPhone(e.target.value)}
-                   />
-                </div>
-                <div className="space-y-1 md:col-span-2">
-                   <label className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-1">Alamat Pengiriman</label>
-                   <input 
-                     type="text"
-                     placeholder="Alamat lengkap tujuan..."
-                     className="w-full px-4 py-2 lg:py-2.5 bg-[#f8f9fa] border border-zinc-200 rounded-xl text-[11px] lg:text-xs font-bold text-black focus:ring-4 focus:ring-primary/5 focus:bg-white outline-none transition-all shadow-sm"
-                     value={customerAddress}
-                     onChange={(e) => setCustomerAddress(e.target.value)}
-                   />
-                </div>
-             </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4 pt-1">
-                <div className="space-y-1">
-                   <label className="block text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-1">Status Alur Pesanan</label>
-                   <select
-                     className="w-full px-4 py-2 lg:py-2.5 bg-[#f8f9fa] border border-zinc-200 rounded-xl text-[11px] lg:text-xs font-bold text-black focus:ring-4 focus:ring-primary/5 focus:bg-white outline-none transition-all shadow-sm cursor-pointer"
-                     value={orderStatus}
-                     onChange={(e) => setOrderStatus(Number(e.target.value))}
-                   >
-                     <option value={1}>1. Pesanan Baru (Biru)</option>
-                     <option value={2}>2. Pesanan Diterima (Telah Dikonfirmasi)</option>
-                     <option value={3}>3. Pesanan Diproses (Packing)</option>
-                     <option value={4}>4. Pesanan Ready (Packing)</option>
-                     <option value={5}>5. Pesanan Dikirim atau Diambil</option>
-                     <option value={6}>6. Pesanan Selesai / Lunas (Default)</option>
-                     <option value={7}>7. Pesanan dalam Penanganan Khusus</option>
-                   </select>
-                </div>
-             </div>
-          </div>
+
 
           <div className="space-y-3 lg:space-y-4">
             <div className="flex items-center justify-between">
@@ -700,74 +643,7 @@ const RecorderContent = () => {
           </div>
         </div>
 
-        {/* --- Recent Transactions / Manage Area --- */}
-        {!editId && (
-            <div className="mt-8 space-y-4">
-                <div className="px-2">
-                    <h3 className="text-lg font-black text-[#030037] tracking-tight">Data Terakhir Tersimpan</h3>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none mt-1">Kelola atau perbaiki data input terbaru Anda</p>
-                </div>
 
-                <div className="bg-white border border-zinc-100 rounded-2xl overflow-hidden shadow-sm">
-                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="bg-zinc-50/50 border-b border-zinc-100">
-                                    <th className="px-6 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-widest">Referensi</th>
-                                    <th className="px-6 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-widest">Tanggal</th>
-                                    <th className="px-6 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-right">Saldo Net</th>
-                                    <th className="px-6 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-100">
-                                {recentTransactions.length > 0 ? (
-                                    recentTransactions.map(tx => (
-                                        <tr key={tx.id} className="hover:bg-zinc-50/50 transition-colors group">
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col">
-                                                   <span className="text-[11px] font-black text-[#030037]">#{tx.reference_number || tx.id.slice(0,6)}</span>
-                                                   <span className="text-[8px] font-bold text-zinc-300 uppercase">SYNCHRONIZED</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-[10px] font-bold text-zinc-400">{new Date(tx.transaction_date).toLocaleDateString()}</span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <span className={`text-[10px] font-black ${tx.net_balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                    {formatIDR(tx.net_balance)}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button 
-                                                        onClick={() => router.push(`/backend/tenant/transactions?id=${tx.id}`)}
-                                                        className="p-1.5 text-zinc-400 hover:text-primary transition-all rounded-md hover:bg-primary/5"
-                                                    >
-                                                        <Edit2 className="w-3.5 h-3.5" />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDelete(tx.id)}
-                                                        className="p-1.5 text-zinc-400 hover:text-rose-500 transition-all rounded-md hover:bg-rose-50"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={4} className="px-6 py-12">
-                                            <SectionLoader small text="Sinkronisasi Data..." />
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                     </div>
-                </div>
-            </div>
-        )}
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import {
   ArrowDownLeft,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Download,
   Receipt,
   X,
@@ -40,14 +41,24 @@ interface TransactionGroup {
 }
 
 const ORDER_STATUSES = [
-  { id: 1, label: "Pesanan Baru", color: "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50" },
-  { id: 2, label: "Diterima & Dikonfirmasi", color: "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50" },
-  { id: 3, label: "Diproses (Packing)", color: "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50" },
-  { id: 4, label: "Ready (Packing)", color: "bg-cyan-50 text-cyan-600 border-cyan-100 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-900/50" },
-  { id: 5, label: "Dikirim / Diambil", color: "bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50" },
-  { id: 6, label: "Selesai / Lunas", color: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50" },
-  { id: 7, label: "Penanganan Khusus", color: "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50" },
+  { id: 1, label: "Pesanan Baru" },
+  { id: 2, label: "Diterima & Dikonfirmasi" },
+  { id: 3, label: "Diproses (Packing)" },
+  { id: 4, label: "Ready (Packing)" },
+  { id: 5, label: "Dikirim / Diambil" },
+  { id: 6, label: "Selesai / Lunas" },
+  { id: 7, label: "Penanganan Khusus" },
 ];
+
+const ORDER_STATUS_COLORS: { [key: number]: { bg: string, text: string, border: string } } = {
+  1: { bg: "#dbeafe", text: "#1e40af", border: "#bfdbfe" }, // Blue-100
+  2: { bg: "#fef3c7", text: "#92400e", border: "#fde68a" }, // Amber-100
+  3: { bg: "#f3e8ff", text: "#6b21a8", border: "#e9d5ff" }, // Purple-100
+  4: { bg: "#ecfeff", text: "#155e75", border: "#c5f6fa" }, // Cyan-100
+  5: { bg: "#e0e7ff", text: "#3730a3", border: "#c7d2fe" }, // Indigo-100
+  6: { bg: "#d1fae5", text: "#065f46", border: "#a7f3d0" }, // Emerald-100
+  7: { bg: "#ffe4e6", text: "#9f1239", border: "#fecdd3" }, // Rose-100
+};
 
 const TransactionHistoryPage = () => {
   const router = useRouter();
@@ -160,57 +171,57 @@ const TransactionHistoryPage = () => {
     new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-full pb-20 px-4 sm:px-6 py-2" style={{ fontFamily: "var(--font-jakarta), sans-serif" }}>
+    <div className="flex flex-col gap-4 w-full max-w-full pb-16 px-4 sm:px-6 py-2" style={{ fontFamily: "var(--font-jakarta), sans-serif" }}>
       
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-1 bg-primary rounded-full" />
+            <div className="w-6 h-[2px] bg-primary rounded-full" />
             <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Riwayat Finansial</span>
           </div>
-          <h1 className="text-3xl font-black text-[#030037] tracking-tighter">Laporan <span className="text-primary">Transaksi</span></h1>
-          <p className="text-zinc-500 text-sm font-medium">Kelola dan tinjau semua aktivitas kas masuk dan keluar UMKM Anda.</p>
+          <h1 className="text-2xl font-black text-[#030037] tracking-tighter">Laporan <span className="text-primary">Transaksi</span></h1>
+          <p className="text-zinc-500 text-xs font-medium">Kelola dan tinjau semua aktivitas kas masuk dan keluar UMKM Anda.</p>
         </div>
         
         <button 
           onClick={() => router.push("/backend/tenant/transactions")}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#030037] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-zinc-200 active:scale-95"
+          className="flex items-center gap-2 px-5 py-2 bg-[#030037] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-md active:scale-95 h-[34px]"
         >
           <Plus className="w-4 h-4" /> Tambah Transaksi
         </button>
       </div>
 
       {/* Stats Summary (Conditional on result) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-zinc-100 p-5 rounded-2xl shadow-sm flex flex-col gap-1">
-           <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Pemasukan</span>
-           <h3 className="text-xl font-black text-emerald-600 tracking-tight">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white border border-zinc-100 px-4 py-3 rounded-xl shadow-sm flex flex-col gap-0.5">
+           <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Total Pemasukan</span>
+           <h3 className="text-lg font-black text-emerald-600 tracking-tight">
              {formatCurrency(transactions.reduce((acc, tx) => acc + Number(tx.total_income), 0))}
            </h3>
         </div>
-        <div className="bg-white border border-zinc-100 p-5 rounded-2xl shadow-sm flex flex-col gap-1">
+        <div className="bg-white border border-zinc-100 px-4 py-3 rounded-xl shadow-sm flex flex-col gap-0.5">
            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Pengeluaran</span>
-           <h3 className="text-xl font-black text-rose-600 tracking-tight">
+           <h3 className="text-lg font-black text-rose-600 tracking-tight">
              {formatCurrency(transactions.reduce((acc, tx) => acc + Number(tx.total_expense), 0))}
            </h3>
         </div>
-        <div className="bg-[#030037] p-5 rounded-2xl shadow-lg flex flex-col gap-1">
+        <div className="bg-[#030037] px-4 py-3 rounded-xl shadow-md flex flex-col gap-0.5">
            <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Saldo Filter</span>
-           <h3 className={`text-xl font-black tracking-tight ${transactions.reduce((acc, tx) => acc + Number(tx.net_balance), 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+           <h3 className={`text-lg font-black tracking-tight ${transactions.reduce((acc, tx) => acc + Number(tx.net_balance), 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
              {formatCurrency(transactions.reduce((acc, tx) => acc + Number(tx.net_balance), 0))}
            </h3>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white border border-zinc-100 rounded-2xl p-4 flex flex-col lg:flex-row gap-4 shadow-sm">
+      <div className="bg-white border border-zinc-100 rounded-xl p-3 flex flex-col lg:flex-row gap-3 shadow-sm">
         <div className="relative flex-1 group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary transition-colors" />
           <input 
             type="text" 
             placeholder="Cari nomor referensi..." 
-            className="w-full bg-zinc-50 border border-zinc-100 px-11 py-2.5 rounded-xl text-xs font-bold focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+            className="w-full bg-zinc-50 border border-zinc-100 px-11 py-2 rounded-lg text-xs font-bold focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all text-black"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
@@ -221,7 +232,7 @@ const TransactionHistoryPage = () => {
               <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
               <input 
                 type="date" 
-                className="bg-zinc-50 border border-zinc-100 pl-9 pr-4 py-2.5 rounded-xl text-[10px] font-black uppercase text-zinc-600 outline-none focus:bg-white"
+                className="bg-zinc-50 border border-zinc-100 pl-9 pr-4 py-2 rounded-lg text-[10px] font-black uppercase text-black outline-none focus:bg-white"
                 value={dateStart}
                 onChange={(e) => { setDateStart(e.target.value); setPage(1); }}
               />
@@ -231,7 +242,7 @@ const TransactionHistoryPage = () => {
               <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
               <input 
                 type="date" 
-                className="bg-zinc-50 border border-zinc-100 pl-9 pr-4 py-2.5 rounded-xl text-[10px] font-black uppercase text-zinc-600 outline-none focus:bg-white"
+                className="bg-zinc-50 border border-zinc-100 pl-9 pr-4 py-2 rounded-lg text-[10px] font-black uppercase text-black outline-none focus:bg-white"
                 value={dateEnd}
                 onChange={(e) => { setDateEnd(e.target.value); setPage(1); }}
               />
@@ -240,17 +251,17 @@ const TransactionHistoryPage = () => {
       </div>
 
       {/* Table Section */}
-      <div className="bg-white border border-zinc-100 rounded-2xl overflow-hidden shadow-xl shadow-zinc-200/20">
+      <div className="bg-white border border-zinc-100 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto min-h-[400px]">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-zinc-50/50 border-b border-zinc-50">
-                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Nota</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Nama Pembeli</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-center">Detail</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Transaksi</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-center">Aksi</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Nota</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Nama Pembeli</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-center">Detail</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Transaksi</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Status</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-50">
@@ -261,114 +272,124 @@ const TransactionHistoryPage = () => {
                    </td>
                 </tr>
               ) : transactions.length > 0 ? (
-                transactions.map((tx) => (
-                  <tr key={tx.id} className="group hover:bg-zinc-50/50 transition-colors">
-                    {/* 1. NOTA */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-400 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all">
-                           <Receipt className="w-4 h-4" />
-                        </div>
-                        <div className="flex flex-col">
-                           <span className="text-xs font-black text-[#030037] uppercase tracking-tight">#{tx.reference_number || tx.id.slice(0, 8)}</span>
-                           <span className="text-[10px] font-medium text-zinc-400">
-                              {new Date(tx.transaction_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                           </span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* 2. NAMA PEMBELI */}
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                         <span className="text-xs font-bold text-zinc-800">
-                            {tx.customer_name || "Manual / Operasional"}
-                         </span>
-                         {tx.customer_phone && (
-                            <span className="text-[9px] font-medium text-zinc-400">{tx.customer_phone}</span>
-                         )}
-                      </div>
-                    </td>
-
-                    {/* 3. DETAIL */}
-                    <td className="px-6 py-4 text-center">
-                       <button 
-                          onClick={() => setSelectedTx(tx)} 
-                          className="px-3 py-1.5 bg-zinc-50 border border-zinc-100 hover:bg-primary hover:text-white hover:border-primary text-zinc-600 rounded-lg text-[10px] font-bold shadow-sm transition-all"
-                       >
-                          Lihat Detail
-                       </button>
-                    </td>
-
-                    {/* 4. TRANSAKSI */}
-                    <td className="px-6 py-4">
-                       <div className="flex flex-col">
-                          {Number(tx.total_income) > 0 && (
-                            <span className="text-xs font-black text-emerald-600">
-                               + {formatCurrency(Number(tx.total_income))}
-                            </span>
-                          )}
-                          {Number(tx.total_expense) > 0 && (
-                            <span className="text-xs font-black text-rose-600">
-                               - {formatCurrency(Number(tx.total_expense))}
-                            </span>
-                          )}
-                          {Number(tx.total_income) === 0 && Number(tx.total_expense) === 0 && (
-                            <span className="text-xs font-black text-zinc-400">
-                               {formatCurrency(0)}
-                            </span>
-                          )}
-                       </div>
-                    </td>
-
-                    {/* 5. STATUS */}
-                    <td className="px-6 py-4">
-                       <div className="relative flex items-center">
-                          <select
-                            value={tx.order_status ?? 6}
-                            onChange={(e) => handleStatusChange(tx.id, Number(e.target.value))}
-                            className={`text-[9px] font-black uppercase tracking-tight py-1 pl-2.5 pr-6 rounded-full border cursor-pointer outline-none transition-all appearance-none ${
-                              ORDER_STATUSES.find(s => s.id === (tx.order_status ?? 6))?.color || "bg-zinc-50 text-zinc-600 border-zinc-100"
-                            }`}
-                          >
-                            {ORDER_STATUSES.map(status => (
-                              <option key={status.id} value={status.id} className="bg-white text-zinc-900 font-bold uppercase text-[9px]">
-                                {status.label}
-                              </option>
-                            ))}
-                          </select>
-                       </div>
-                    </td>
-
-                    {/* 6. AKSI (EDIT & DELETE) */}
-                    <td className="px-6 py-4 text-center">
-                       <div className="flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <button 
-                             onClick={() => {
-                                // Jika transaksi ini berasal dari POS (ada product_id), arahkan ke halaman POS
-                                const isPOSTransaction = tx.transaction_items?.some((item: any) => item.product_id);
-                                if (isPOSTransaction) {
-                                  router.push(`/backend/tenant/sales?id=${tx.id}`);
-                                } else {
-                                  router.push(`/backend/tenant/transactions?id=${tx.id}`);
-                                }
-                              }} 
-                             className="p-2 bg-white border border-zinc-100 rounded-lg text-zinc-400 hover:text-amber-500 hover:border-amber-100 shadow-sm transition-all"
-                             title="Edit"
-                          >
-                             <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                             onClick={() => handleDelete(tx.id)} 
-                             className="p-2 bg-white border border-zinc-100 rounded-lg text-zinc-400 hover:text-rose-500 hover:border-rose-100 shadow-sm transition-all"
-                             title="Hapus"
-                          >
-                             <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                       </div>
-                    </td>
-                  </tr>
-                ))
+                transactions.map((tx) => {
+                   const isPOSTransaction = tx.transaction_items?.some((item: any) => item.product_id);
+                   return (
+                      <tr key={tx.id} className="group hover:bg-zinc-50/50 transition-colors">
+                        {/* 1. NOTA */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-400 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all">
+                               <Receipt className="w-4 h-4" />
+                            </div>
+                            <div className="flex flex-col">
+                               <span className="text-xs font-black text-[#030037] uppercase tracking-tight">#{tx.reference_number || tx.id.slice(0, 8)}</span>
+                               <span className="text-[10px] font-medium text-zinc-400">
+                                  {new Date(tx.transaction_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                               </span>
+                            </div>
+                          </div>
+                        </td>
+     
+                        {/* 2. NAMA PEMBELI */}
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col">
+                             <span className="text-xs font-bold text-zinc-800">
+                                {tx.customer_name || "Manual / Operasional"}
+                             </span>
+                             {tx.customer_phone && (
+                                <span className="text-[9px] font-medium text-zinc-400">{tx.customer_phone}</span>
+                             )}
+                          </div>
+                        </td>
+     
+                        {/* 3. DETAIL */}
+                        <td className="px-4 py-3 text-center">
+                           <button 
+                              onClick={() => setSelectedTx(tx)} 
+                              className="px-3 py-1.5 bg-zinc-50 border border-zinc-100 hover:bg-primary hover:text-white hover:border-primary text-zinc-600 rounded-lg text-[10px] font-bold shadow-sm transition-all"
+                           >
+                              Lihat Detail
+                           </button>
+                        </td>
+     
+                        {/* 4. TRANSAKSI */}
+                        <td className="px-4 py-3">
+                           <div className="flex flex-col">
+                              {Number(tx.total_income) > 0 && (
+                                <span className="text-xs font-black text-emerald-600">
+                                   + {formatCurrency(Number(tx.total_income))}
+                                </span>
+                              )}
+                              {Number(tx.total_expense) > 0 && (
+                                <span className="text-xs font-black text-rose-600">
+                                   - {formatCurrency(Number(tx.total_expense))}
+                                </span>
+                              )}
+                              {Number(tx.total_income) === 0 && Number(tx.total_expense) === 0 && (
+                                <span className="text-xs font-black text-zinc-400">
+                                   {formatCurrency(0)}
+                                </span>
+                              )}
+                           </div>
+                        </td>
+     
+                        {/* 5. STATUS */}
+                        <td className="px-4 py-3">
+                           {isPOSTransaction ? (
+                             <div className="relative flex items-center w-fit">
+                                {(() => {
+                                  const sc = ORDER_STATUS_COLORS[tx.order_status ?? 6] || { bg: "#f4f4f5", text: "#27272a", border: "#e4e4e7" };
+                                  return (
+                                    <select
+                                      value={tx.order_status ?? 6}
+                                      onChange={(e) => handleStatusChange(tx.id, Number(e.target.value))}
+                                      className="text-[9px] font-black uppercase tracking-tight py-1 pl-6 pr-6 rounded-full border cursor-pointer outline-none transition-all appearance-none text-zinc-900 text-center"
+                                      style={{ backgroundColor: sc.bg, color: sc.text, borderColor: sc.border }}
+                                    >
+                                      {ORDER_STATUSES.map(status => (
+                                        <option key={status.id} value={status.id} className="bg-white text-zinc-900 font-bold uppercase text-[9px] text-center">
+                                          {status.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  );
+                                })()}
+                                <ChevronDown className="absolute right-2 w-3 h-3 text-zinc-500 pointer-events-none" />
+                             </div>
+                           ) : (
+                             <span className="text-zinc-400 font-bold text-xs block text-center max-w-[120px]">-</span>
+                           )}
+                        </td>
+     
+                        {/* 6. AKSI (EDIT & DELETE) */}
+                        <td className="px-4 py-3 text-center">
+                           <div className="flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                 onClick={() => {
+                                    if (isPOSTransaction) {
+                                      router.push(`/backend/tenant/sales?id=${tx.id}`);
+                                    } else {
+                                      router.push(`/backend/tenant/transactions?id=${tx.id}`);
+                                    }
+                                  }} 
+                                 className="p-2 bg-white border border-zinc-100 rounded-lg text-zinc-400 hover:text-amber-500 hover:border-amber-100 shadow-sm transition-all"
+                                 title="Edit"
+                              >
+                                 <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                 onClick={() => handleDelete(tx.id)} 
+                                 className="p-2 bg-white border border-zinc-100 rounded-lg text-zinc-400 hover:text-rose-500 hover:border-rose-100 shadow-sm transition-all"
+                                 title="Hapus"
+                              >
+                                 <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                           </div>
+                        </td>
+                      </tr>
+                   );
+                })
               ) : (
                 <tr>
                    <td colSpan={6} className="py-24 text-center">
@@ -434,13 +455,17 @@ const TransactionHistoryPage = () => {
                     </div>
                     <div className="space-y-1">
                        <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Status Alur</span>
-                       <div>
-                          <span className={`inline-block text-[10px] font-black uppercase tracking-tight py-1 px-3 rounded-full border ${
-                            ORDER_STATUSES.find(s => s.id === (selectedTx.order_status ?? 6))?.color || "bg-zinc-50 text-zinc-600 border-zinc-100"
-                          }`}>
-                            {ORDER_STATUSES.find(s => s.id === (selectedTx.order_status ?? 6))?.label || "Selesai"}
-                          </span>
-                       </div>
+                       {(() => {
+                         const sc = ORDER_STATUS_COLORS[selectedTx.order_status ?? 6] || { bg: "#f4f4f5", text: "#27272a", border: "#e4e4e7" };
+                         return (
+                           <span 
+                             className="inline-block text-[10px] font-black uppercase tracking-tight py-1 px-3 rounded-full border"
+                             style={{ backgroundColor: sc.bg, color: sc.text, borderColor: sc.border }}
+                           >
+                             {ORDER_STATUSES.find(s => s.id === (selectedTx.order_status ?? 6))?.label || "Selesai"}
+                           </span>
+                         );
+                       })()}
                     </div>
                  </div>
 

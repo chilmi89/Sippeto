@@ -31,7 +31,6 @@ type NavItem = {
 
 const tenantNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/backend/tenant" },
-  { icon: Globe, label: "Toko Saya", href: "/backend/tenant/store" },
   { 
     icon: ShoppingCart, 
     label: "POS Kasir (Penjualan)", 
@@ -71,7 +70,7 @@ const tenantNavItems: NavItem[] = [
       { label: "Laporan Tahunan", href: "/backend/tenant/reports/yearly" },
     ]
   },
-  { icon: UserCircle, label: "Profil UMKM", href: "/backend/tenant/profile" },
+  { icon: UserCircle, label: "Profil & Toko Saya", href: "/backend/tenant/profile" },
 ];
 
 export const TenantSidebar = () => {

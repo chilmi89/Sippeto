@@ -2,25 +2,19 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import {
-  Search,
   ShoppingCart,
   Trash2,
   Plus,
   Minus,
   User,
-  Phone,
-  MapPin,
   CreditCard,
   Check,
   Printer,
   X,
   Package,
-  Layers,
   Store,
-  Calendar,
   ChevronDown,
   Edit2,
-  AlertTriangle,
   Receipt
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -83,8 +77,6 @@ function POSKasirContent() {
 
   // Selection States
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   
   // Cart & Transaction Form States
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -95,6 +87,8 @@ function POSKasirContent() {
   const [reference, setReference] = useState("");
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [inputQty, setInputQty] = useState<number>(1);
 
   // Loadings
   const [isLoading, setIsLoading] = useState(true);
@@ -157,7 +151,14 @@ function POSKasirContent() {
           const payData = (await payRes.json()).data || [];
           setPaymentMethods(payData);
           loadedPaymentMethods = payData;
-          if (payData.length > 0) setPaymentMethodId(payData[0].id);
+          if (payData.length > 0) {
+            const defaultMethod = payData.find(
+              (pm: any) =>
+                pm.name.toLowerCase().includes("tunai") ||
+                pm.name.toLowerCase().includes("cash")
+            ) || payData[0];
+            setPaymentMethodId(defaultMethod.id);
+          }
         }
         if (txCatRes.ok) {
           const txCatData = (await txCatRes.json()).data || [];
@@ -182,7 +183,14 @@ function POSKasirContent() {
               if (tx.transaction_items?.length > 0) {
                 const firstItemPaymentId = tx.transaction_items[0].payment_method_id;
                 if (firstItemPaymentId) setPaymentMethodId(firstItemPaymentId);
-                else if (loadedPaymentMethods.length > 0) setPaymentMethodId(loadedPaymentMethods[0].id);
+                else if (loadedPaymentMethods.length > 0) {
+                  const defaultMethod = loadedPaymentMethods.find(
+                    (pm: any) =>
+                      pm.name.toLowerCase().includes("tunai") ||
+                      pm.name.toLowerCase().includes("cash")
+                  ) || loadedPaymentMethods[0];
+                  setPaymentMethodId(defaultMethod.id);
+                }
               }
 
               // Ambil produk cabang untuk mendapatkan detail produk
@@ -306,6 +314,41 @@ function POSKasirContent() {
 
   const removeFromCart = (productId: string) => {
     setCart(cart.filter(item => item.product.id !== productId));
+  };
+
+  const handleAddProductFromSelect = () => {
+    if (!selectedProductId) return toast.warning("Silakan pilih produk terlebih dahulu");
+    const prod = products.find(p => p.id === selectedProductId);
+    if (!prod) return;
+
+    const stockLimit = prod.current_branch_stock ?? 0;
+    if (stockLimit <= 0) {
+      toast.warning("Stok produk habis!");
+      return;
+    }
+
+    const existing = cart.find(item => item.product.id === prod.id);
+    const currentQty = existing ? existing.quantity : 0;
+    const targetQty = currentQty + inputQty;
+
+    if (targetQty > stockLimit) {
+      toast.warning(`Stok tidak mencukupi. Maksimal stok: ${stockLimit}`);
+      return;
+    }
+
+    if (existing) {
+      setCart(cart.map(item => 
+        item.product.id === prod.id 
+          ? { ...item, quantity: targetQty } 
+          : item
+      ));
+    } else {
+      setCart([...cart, { product: prod, quantity: inputQty }]);
+    }
+    
+    // Reset selection
+    setSelectedProductId("");
+    setInputQty(1);
   };
 
   // Calculations
@@ -467,12 +510,7 @@ function POSKasirContent() {
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
 
-  // Filters
-  const filteredProducts = products.filter((p) => {
-const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategoryId === "all" || p.category_id === selectedCategoryId;
-    return matchesSearch && matchesCategory;
-  });
+
 
   if (isLoading) return <FullPageLoader />;
 
@@ -555,297 +593,275 @@ const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
          )}
 
          {/* Layout Grid */}
-         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
             
-            {/* LEFT COLUMN: Products Catalogue (8 Columns) */}
-            <div className="xl:col-span-8 space-y-3">
-               
-               {/* Product Filtering Bar */}
-               <div className="bg-white border border-zinc-200 p-2 rounded-xl flex flex-col sm:flex-row gap-2 items-center shadow-sm">
-                  <div className="relative w-full sm:flex-1">
-                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
-                     <input 
-                       type="text" 
-                       placeholder="Cari nama produk..." 
-                       className="w-full bg-zinc-50 border border-zinc-200 pl-10 pr-3 py-2 rounded-lg text-xs font-bold focus:outline-none focus:border-[#3c39d6] focus:bg-white transition-all text-zinc-800"
-                       value={searchQuery}
-                       onChange={(e) => setSearchQuery(e.target.value)}
-                     />
+            {/* LEFT COLUMN: Form Checkout & Pembayaran (5 Kolom) */}
+            <div className="lg:col-span-5 bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm space-y-4">
+               <div className="flex items-center justify-between border-b border-zinc-150 pb-2">
+                  <h3 className="text-xs font-black text-[#030037] uppercase tracking-widest flex items-center gap-1.5">
+                     Detail Transaksi
+                  </h3>
+               </div>
+
+               <div className="space-y-3">
+                  {/* Row 1: Nota & Tanggal */}
+                  <div className="grid grid-cols-2 gap-2">
+                     <div className="space-y-0.5">
+                        <label className="text-[8px] font-black text-zinc-900 uppercase tracking-widest block pl-0.5">No. Nota</label>
+                        <input 
+                           type="text"
+                           className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-black outline-none focus:bg-white focus:border-[#10b981] focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                           value={reference}
+                           onChange={(e) => setReference(e.target.value)}
+                        />
+                     </div>
+                     <div className="space-y-0.5">
+                        <label className="text-[8px] font-black text-zinc-900 uppercase tracking-widest block pl-0.5">Tanggal</label>
+                        <input 
+                           type="date"
+                           className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-black outline-none focus:bg-white focus:border-[#10b981] focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                           value={date}
+                           onChange={(e) => setDate(e.target.value)}
+                        />
+                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 px-3 py-2 rounded-lg w-full sm:w-auto shrink-0">
-                     <Layers className="w-3.5 h-3.5 text-zinc-400" />
-                     <select 
-                       value={selectedCategoryId}
-                       onChange={(e) => setSelectedCategoryId(e.target.value)}
-                       className="bg-transparent border-0 text-zinc-700 text-xs font-bold focus:ring-0 outline-none cursor-pointer w-full sm:w-32 py-0"
+
+                  {/* Row 2: Nama Pelanggan */}
+                  <div className="space-y-0.5">
+                     <label className="text-[8px] font-black text-zinc-900 uppercase tracking-widest block pl-0.5">Pelanggan</label>
+                     <div className="relative flex items-center">
+                        <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                        <input 
+                          type="text" 
+                          placeholder="Pembeli Umum (Default)" 
+                          className="w-full pl-8 pr-2 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold outline-none focus:bg-white focus:border-[#10b981] focus:ring-2 focus:ring-emerald-500/10 text-black transition-all"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                        />
+                     </div>
+                  </div>
+
+                  {/* Row 3: Metode Pembayaran Cepat */}
+                  <div className="space-y-1">
+                     <label className="text-[8px] font-black text-zinc-900 uppercase tracking-widest block pl-0.5">Metode Bayar</label>
+                     <div className="grid grid-cols-3 gap-1.5">
+                       {paymentMethods.map(pm => {
+                         const isActive = paymentMethodId === pm.id;
+                         return (
+                           <button
+                             key={pm.id}
+                             type="button"
+                             onClick={() => setPaymentMethodId(pm.id)}
+                             className={`px-2 py-2.5 rounded-xl text-xs font-bold border transition-all duration-200 flex flex-col items-center justify-center gap-1 select-none ${
+                               isActive 
+                                 ? "bg-[#10b981] border-[#10b981] text-white shadow-sm shadow-emerald-500/20" 
+                                 : "bg-zinc-50 border-zinc-200 text-zinc-900 hover:bg-zinc-100 hover:text-zinc-800"
+                             }`}
+                           >
+                             <CreditCard className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-zinc-400"}`} />
+                             <span className="text-[9px] truncate max-w-full text-center leading-tight font-black">{pm.name}</span>
+                           </button>
+                         );
+                       })}
+                     </div>
+                  </div>
+
+                  {/* Total Summary */}
+                  <div className="bg-gradient-to-br from-[#030037] to-[#120f4c] text-white p-3.5 rounded-xl flex justify-between items-center shadow-sm border border-white/5">
+                     <div>
+                        <span className="text-[7.5px] font-bold text-white/50 uppercase tracking-widest block">Total Belanja</span>
+                        <span className="text-[9.5px] font-bold text-white/45">
+                           {cart.length} produk
+                        </span>
+                     </div>
+                     <span className="text-xl font-black font-mono text-emerald-400">
+                        {formatCurrency(cartSubtotal)}
+                     </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                     <button 
+                        onClick={() => {
+                          if (editId) {
+                            router.push('/backend/tenant/sales/history');
+                          } else if (cart.length > 0 && confirm("Kosongkan keranjang?")) {
+                            setCart([]);
+                          }
+                        }}
+                        className="px-3.5 py-2.5 bg-zinc-100 hover:bg-zinc-250 text-zinc-500 hover:text-zinc-700 transition-colors font-bold text-xs rounded-lg border border-zinc-200"
                      >
-                       <option value="all">Semua Kategori</option>
-                       {categories.map((c) => (
-                         <option key={c.id} value={c.id}>{c.name}</option>
-                       ))}
-                     </select>
+                        {editId ? "Batal Edit" : "Reset"}
+                     </button>
+                     <button
+                        onClick={handleSubmitTransaction}
+                        disabled={cart.length === 0}
+                        className={`flex-1 py-2.5 text-white transition-all font-black text-xs uppercase tracking-widest rounded-lg shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 ${
+                          editId 
+                            ? "bg-amber-500 hover:bg-amber-600" 
+                            : "bg-[#10b981] hover:bg-[#059669] shadow-emerald-500/10"
+                        }`}
+                     >
+                        {editId ? <Edit2 className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+                        {editId ? "Simpan Perubahan" : "Bayar & Selesaikan"}
+                     </button>
+                  </div>
+               </div>
+            </div>
+
+            {/* RIGHT COLUMN: Product Input & Cart Table List (7 Kolom) */}
+            <div className="lg:col-span-7 bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm space-y-4">
+               
+               {/* 1. Pilih Produk Pemilih */}
+               <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-zinc-900 uppercase tracking-widest block pl-0.5">Pilih Produk Ke Keranjang</label>
+                  <div className="flex flex-col sm:flex-row gap-2 items-center">
+                     <div className="relative flex-1 w-full">
+                        <select
+                          value={selectedProductId}
+                          onChange={(e) => setSelectedProductId(e.target.value)}
+                          className="w-full pl-3 pr-8 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-black outline-none focus:bg-white focus:border-[#10b981] transition-all cursor-pointer appearance-none"
+                        >
+                          <option value="" className="text-black bg-white">-- Cari & Pilih Produk --</option>
+                          {products.map((p) => {
+                            const stock = p.current_branch_stock ?? 0;
+                            const isOutOfStock = stock <= 0;
+                            return (
+                              <option key={p.id} value={p.id} disabled={isOutOfStock} className="text-black bg-white">
+                                {p.name} - {formatCurrency(p.sell_price)} {isOutOfStock ? "(Habis)" : `(Stok: ${stock})`}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+                     </div>
+                     
+                     <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
+                        <div className="flex items-center border border-zinc-200 rounded-lg overflow-hidden h-9 bg-zinc-50">
+                           <button
+                              type="button"
+                              onClick={() => setInputQty(Math.max(1, inputQty - 1))}
+                              className="px-2.5 text-zinc-500 hover:bg-zinc-150 transition-colors"
+                           >
+                              <Minus className="w-3.5 h-3.5" />
+                           </button>
+                           <input
+                              type="number"
+                              min="1"
+                              value={inputQty}
+                              onChange={(e) => setInputQty(Math.max(1, parseInt(e.target.value) || 1))}
+                              className="w-12 text-center text-xs font-bold bg-transparent border-0 focus:ring-0 p-0 text-zinc-900"
+                           />
+                           <button
+                              type="button"
+                              onClick={() => setInputQty(inputQty + 1)}
+                              className="px-2.5 text-zinc-500 hover:bg-zinc-150 transition-colors"
+                           >
+                              <Plus className="w-3.5 h-3.5" />
+                           </button>
+                        </div>
+
+                        <button
+                           type="button"
+                           onClick={handleAddProductFromSelect}
+                           className="px-4 py-2 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-black uppercase tracking-wider rounded-lg transition-all h-9 flex items-center gap-1"
+                        >
+                           <Plus className="w-3.5 h-3.5" /> Tambah
+                        </button>
+                     </div>
                   </div>
                </div>
 
-              {/* Products Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[calc(100vh-200px)] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-200 scrollbar-track-transparent">
-                 {filteredProducts.length === 0 ? (
-                    <div className="col-span-full py-12 text-center bg-white border border-zinc-200 rounded-2xl shadow-sm flex flex-col items-center gap-2">
-                       <div className="p-3 bg-zinc-50 rounded-full text-zinc-300">
-                          <Package className="w-10 h-10" />
-                       </div>
-                       <h3 className="text-xs font-bold text-[#030037]">Produk Tidak Ditemukan</h3>
-                       <p className="text-[11px] text-zinc-500 max-w-xs px-4">Pastikan cabang aktif memiliki persediaan stok untuk dicari.</p>
-                    </div>
-                 ) : (
-                    filteredProducts.map((p) => {
-                       const stock = p.current_branch_stock ?? 0;
-                       const isOutOfStock = stock <= 0;
+               {/* 2. Keranjang Belanja List Table */}
+               <div className="space-y-1.5">
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-1.5">
+                     <h4 className="text-[10px] font-black text-zinc-900 uppercase tracking-widest flex items-center gap-1.5">
+                        <ShoppingCart className="w-3.5 h-3.5 text-[#3c39d6]" /> Keranjang Belanja
+                     </h4>
+                     <span className="text-[9px] font-black bg-[#3c39d6]/10 text-[#3c39d6] px-2 py-0.5 rounded-full">
+                        {cart.length} produk terpilih
+                     </span>
+                  </div>
 
-                       return (
-                          <div 
-                             key={p.id} 
-                             onClick={() => !isOutOfStock && addToCart(p)}
-                             className={`bg-white border rounded-xl p-2.5 flex flex-col justify-between hover:shadow-md transition-all duration-200 group select-none shadow-sm ${
-                               isOutOfStock 
-                                 ? 'opacity-60 border-zinc-250 cursor-not-allowed' 
-                                 : 'border-zinc-200 hover:border-emerald-400/60 cursor-pointer active:scale-[0.98]'
-                             }`}
-                          >
-                             <div className="space-y-1.5">
-                                {/* Product Image */}
-                                {p.image_url ? (
-                                   <img 
-                                      src={p.image_url} 
-                                      alt={p.name} 
-                                      className="w-full h-20 object-cover rounded-lg border border-zinc-100"
-                                   />
-                                ) : (
-                                   <div className="w-full h-20 bg-[#f8f9fa] rounded-lg border border-zinc-150/60 flex items-center justify-center text-zinc-350">
-                                      <Package className="w-6 h-6" />
-                                   </div>
-                                )}
+                  <div className="border border-zinc-150 rounded-xl overflow-hidden shadow-sm bg-zinc-50/30">
+                     <div className="max-h-[350px] overflow-y-auto scrollbar-thin">
+                        <table className="w-full text-left border-collapse">
+                           <thead>
+                              <tr className="bg-zinc-50 border-b border-zinc-150 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                                 <th className="px-3 py-2.5">Produk</th>
+                                 <th className="px-3 py-2.5 text-right">Harga</th>
+                                 <th className="px-3 py-2.5 text-center">Qty</th>
+                                 <th className="px-3 py-2.5 text-right">Subtotal</th>
+                                 <th className="px-3 py-2.5 text-center">Aksi</th>
+                              </tr>
+                           </thead>
+                           <tbody className="divide-y divide-zinc-150">
+                              {cart.length === 0 ? (
+                                 <tr>
+                                    <td colSpan={5} className="py-12 text-center text-zinc-350">
+                                       <ShoppingCart className="w-8 h-8 mx-auto mb-1.5 opacity-40" />
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Keranjang masih kosong</p>
+                                    </td>
+                                 </tr>
+                              ) : (
+                                 cart.map((item) => (
+                                    <tr key={item.product.id} className="hover:bg-zinc-100/50 bg-white transition-all text-xs font-bold text-zinc-800">
+                                       <td className="px-3 py-2">
+                                          <div className="truncate max-w-[150px] sm:max-w-[200px]" title={item.product.name}>
+                                             {item.product.name}
+                                          </div>
+                                       </td>
+                                       <td className="px-3 py-2 text-right font-mono text-[11px]">
+                                          {formatCurrency(item.product.sell_price)}
+                                       </td>
+                                       <td className="px-3 py-2">
+                                          <div className="flex items-center justify-center gap-1 bg-zinc-50 border border-zinc-200 px-1 py-0.5 rounded-md w-20 mx-auto">
+                                             <button 
+                                                type="button"
+                                                onClick={() => updateQuantity(item.product.id, -1)}
+                                                className="p-0.5 text-zinc-400 hover:text-[#3c39d6] transition-colors"
+                                              >
+                                                 <Minus className="w-2.5 h-2.5" />
+                                              </button>
+                                              <input 
+                                                type="text" 
+                                                className="w-8 border-none bg-transparent text-center text-[11px] font-bold text-zinc-850 focus:ring-0 p-0"
+                                                value={item.quantity}
+                                                onChange={(e) => handleQtyInput(item.product.id, e.target.value)}
+                                              />
+                                              <button 
+                                                 type="button"
+                                                 onClick={() => updateQuantity(item.product.id, 1)}
+                                                 className="p-0.5 text-zinc-400 hover:text-[#3c39d6] transition-colors"
+                                              >
+                                                 <Plus className="w-2.5 h-2.5" />
+                                              </button>
+                                           </div>
+                                        </td>
+                                        <td className="px-3 py-2 text-right font-mono text-[11px] text-emerald-600">
+                                           {formatCurrency(item.product.sell_price * item.quantity)}
+                                        </td>
+                                        <td className="px-3 py-2 text-center">
+                                           <button 
+                                              type="button"
+                                              onClick={() => removeFromCart(item.product.id)}
+                                              className="p-1 text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-100 rounded-md transition-all"
+                                           >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                           </button>
+                                        </td>
+                                     </tr>
+                                  ))
+                               )}
+                            </tbody>
+                         </table>
+                      </div>
+                   </div>
+                </div>
 
-                                {/* Info */}
-                                <div className="space-y-0.5">
-                                   <span className="text-[8px] font-black text-zinc-400 uppercase tracking-tight block">
-                                      {p.product_categories?.name || "Kategori Umum"}
-                                   </span>
-                                   <h4 className="text-[11px] font-black text-[#030037] leading-tight line-clamp-2 min-h-[28px] group-hover:text-[#3c39d6] transition-colors">
-                                      {p.name}
-                                   </h4>
-                                </div>
-                             </div>
+             </div>
 
-                             <div className="pt-1.5 border-t border-zinc-100 mt-1.5 flex items-end justify-between">
-                                <div className="flex flex-col">
-                                   <span className={`text-[8px] font-bold py-0.5 px-1.5 rounded-full border leading-none self-start ${
-                                     isOutOfStock 
-                                       ? 'bg-rose-50 text-rose-600 border-rose-100' 
-                                       : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                   }`}>
-                                      {isOutOfStock ? 'Habis' : `Stok: ${stock}`}
-                                   </span>
-                                   <span className="text-[11px] font-black text-emerald-600 font-mono mt-0.5">
-                                      {formatCurrency(p.sell_price)}
-                                   </span>
-                                </div>
-
-                                <button 
-                                   disabled={isOutOfStock}
-                                   className={`p-1 rounded-md border flex items-center justify-center transition-all ${
-                                     isOutOfStock 
-                                       ? 'bg-zinc-50 border-zinc-200 text-zinc-300' 
-                                       : 'bg-emerald-50 border-emerald-250 hover:bg-[#10b981] hover:text-white hover:border-[#10b981] text-emerald-600 active:scale-90'
-                                   }`}
-                                >
-                                   <Plus className="w-3 h-3" />
-                                </button>
-                             </div>
-                          </div>
-                       );
-                    })
-                 )}
-              </div>
-           </div>
-
-           {/* RIGHT COLUMN: Shopping Cart & Checkout Form (4 Columns) */}
-           <div className="xl:col-span-4 space-y-3">
-              
-              {/* Cart Container Card */}
-              <div className="bg-white border border-zinc-200 rounded-2xl p-3.5 shadow-md space-y-3">
-                 
-                 {/* Cart Header */}
-                 <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-                    <h3 className="text-xs font-black text-[#030037] uppercase tracking-widest flex items-center gap-1.5">
-                       <ShoppingCart className="w-3.5 h-3.5 text-[#3c39d6]" /> Keranjang Belanja
-                    </h3>
-                    <span className="text-[9px] font-black bg-[#3c39d6]/10 text-[#3c39d6] px-2 py-0.5 rounded-full">
-                       {cart.length} item
-                    </span>
-                 </div>
-
-                 {/* Cart Items List */}
-                 <div className="space-y-2 max-h-[calc(100vh-440px)] overflow-y-auto pr-1 min-h-[90px] scrollbar-thin">
-                    {cart.length === 0 ? (
-                       <div className="py-8 text-center flex flex-col items-center justify-center text-zinc-300">
-                          <ShoppingCart className="w-8 h-8 mb-1.5 opacity-40" />
-                          <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Keranjang masih kosong</p>
-                       </div>
-                    ) : (
-                       cart.map((item) => (
-                          <div key={item.product.id} className="flex items-center justify-between gap-2 p-1.5 bg-zinc-50 rounded-lg border border-zinc-150 shadow-sm hover:bg-zinc-100/60 transition-all">
-                             
-                             {/* Item Mini Info */}
-                             <div className="flex-1 min-w-0">
-                                <h5 className="text-[11px] font-black text-[#030037] truncate leading-tight">
-                                   {item.product.name}
-                                </h5>
-                                <span className="text-[9px] font-black text-emerald-600 font-mono">
-                                   {formatCurrency(item.product.sell_price * item.quantity)}
-                                </span>
-                             </div>
-
-                             {/* Qty Controls */}
-                             <div className="flex items-center gap-1 bg-white border border-zinc-200 px-1.5 py-0.5 rounded-md">
-                                <button 
-                                   onClick={() => updateQuantity(item.product.id, -1)}
-                                   className="p-0.5 text-zinc-400 hover:text-[#3c39d6] transition-colors"
-                                >
-                                   <Minus className="w-2.5 h-2.5" />
-                                </button>
-                                <input 
-                                  type="text" 
-                                  className="w-6 border-none bg-transparent text-center text-[11px] font-bold text-zinc-850 focus:ring-0 p-0"
-                                  value={item.quantity}
-                                  onChange={(e) => handleQtyInput(item.product.id, e.target.value)}
-                                />
-                                <button 
-                                   onClick={() => updateQuantity(item.product.id, 1)}
-                                   className="p-0.5 text-zinc-400 hover:text-[#3c39d6] transition-colors"
-                                >
-                                   <Plus className="w-2.5 h-2.5" />
-                                </button>
-                             </div>
-
-                             {/* Delete */}
-                             <button 
-                                onClick={() => removeFromCart(item.product.id)}
-                                className="p-1 text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-100 rounded-md transition-all"
-                             >
-                                <Trash2 className="w-3 h-3" />
-                             </button>
-                          </div>
-                       ))
-                    )}
-                 </div>
-
-                 {/* Checkout & Customer Details Form */}
-                 <div className="border-t border-zinc-100 pt-3 space-y-2.5">
-                    
-                    {/* Row 1: Nota & Tanggal */}
-                    <div className="grid grid-cols-2 gap-2">
-                       <div className="space-y-0.5">
-                          <label className="text-[7.5px] font-black text-zinc-400 uppercase tracking-widest block pl-0.5">No. Nota</label>
-                          <input 
-                             type="text"
-                             className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-black outline-none focus:bg-white focus:border-[#10b981] focus:ring-2 focus:ring-emerald-500/10 transition-all"
-                             value={reference}
-                             onChange={(e) => setReference(e.target.value)}
-                          />
-                       </div>
-                       <div className="space-y-0.5">
-                          <label className="text-[7.5px] font-black text-zinc-400 uppercase tracking-widest block pl-0.5">Tanggal</label>
-                          <input 
-                             type="date"
-                             className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-black outline-none focus:bg-white focus:border-[#10b981] focus:ring-2 focus:ring-emerald-500/10 transition-all"
-                             value={date}
-                             onChange={(e) => setDate(e.target.value)}
-                          />
-                       </div>
-                    </div>
-
-                    {/* Row 2: Metode Pembayaran & Nama Pelanggan */}
-                    <div className="grid grid-cols-2 gap-2">
-                       <div className="space-y-0.5">
-                          <label className="text-[7.5px] font-black text-zinc-400 uppercase tracking-widest block pl-0.5">Metode Bayar</label>
-                          <div className="relative flex items-center">
-                             <CreditCard className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
-                             <select
-                               className="w-full pl-7 pr-6 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-800 outline-none focus:bg-white focus:border-[#10b981] focus:ring-2 focus:ring-emerald-500/10 cursor-pointer appearance-none transition-all"
-                               value={paymentMethodId}
-                               onChange={(e) => setPaymentMethodId(e.target.value)}
-                             >
-                               {paymentMethods.map(pm => (
-                                 <option key={pm.id} value={pm.id}>{pm.name}</option>
-                               ))}
-                             </select>
-                             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-zinc-400 pointer-events-none" />
-                          </div>
-                       </div>
-
-                       <div className="space-y-0.5">
-                          <label className="text-[7.5px] font-black text-zinc-400 uppercase tracking-widest block pl-0.5">Pelanggan</label>
-                          <div className="relative flex items-center">
-                             <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
-                             <input 
-                               type="text" 
-                               placeholder="Nama Pelanggan" 
-                               className="w-full pl-7 pr-2 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold outline-none focus:bg-white focus:border-[#10b981] focus:ring-2 focus:ring-emerald-500/10 text-zinc-800 transition-all placeholder:text-[10px]"
-                               value={customerName}
-                               onChange={(e) => setCustomerName(e.target.value)}
-                             />
-                          </div>
-                       </div>
-                    </div>
-
-                    {/* Total Summary */}
-                    <div className="bg-gradient-to-br from-[#030037] to-[#120f4c] text-white p-3 rounded-xl flex justify-between items-center shadow-sm border border-white/5">
-                       <div>
-                          <span className="text-[7.5px] font-bold text-white/50 uppercase tracking-widest block">Total Belanja</span>
-                          <span className="text-[9.5px] font-bold text-white/45">
-                             {cart.length} produk
-                          </span>
-                       </div>
-                       <span className="text-lg font-black font-mono text-emerald-400">
-                          {formatCurrency(cartSubtotal)}
-                       </span>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                       <button 
-                          onClick={() => {
-                            if (editId) {
-                              router.push('/backend/tenant/sales/history');
-                            } else if (cart.length > 0 && confirm("Kosongkan keranjang?")) {
-                              setCart([]);
-                            }
-                          }}
-                          className="px-3.5 py-2.5 bg-zinc-100 hover:bg-zinc-250 text-zinc-500 hover:text-zinc-700 transition-colors font-bold text-xs rounded-lg border border-zinc-200"
-                       >
-                          {editId ? "Batal Edit" : "Reset"}
-                       </button>
-                       <button
-                          onClick={handleSubmitTransaction}
-                          disabled={cart.length === 0}
-                          className={`flex-1 py-2.5 text-white transition-all font-black text-xs uppercase tracking-widest rounded-lg shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 ${
-                            editId 
-                              ? "bg-amber-500 hover:bg-amber-600" 
-                              : "bg-[#10b981] hover:bg-[#059669] shadow-emerald-500/10"
-                          }`}
-                       >
-                          {editId ? <Edit2 className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
-                          {editId ? "Simpan Perubahan" : "Bayar & Selesaikan"}
-                       </button>
-                    </div>
-                 </div>
-
-              </div>
-           </div>
-
-        </div>
+          </div>
 
       </div>
 
