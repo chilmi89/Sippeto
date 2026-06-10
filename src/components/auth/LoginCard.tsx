@@ -58,14 +58,14 @@ export const LoginCard = ({ theme = 'dark' }: { theme?: 'light' | 'dark' }) => {
         <div className="relative space-y-4 xl:space-y-5">
           <div className="space-y-0.5 text-center lg:text-left">
             <h2 className={`text-2xl xl:text-3xl font-bold tracking-tight ${isLight ? 'text-slate-800' : 'text-white'}`}>Login Akun</h2>
-            <p className={`font-medium text-[11px] xl:text-xs flex items-center justify-center lg:justify-start gap-1.5 ${isLight ? 'text-slate-400' : 'text-white/50'}`}>
-              Mulai sekarang <Sparkles className={`w-3.5 h-3.5 ${isLight ? 'text-primary/60' : 'text-white/50'}`} />
+            <p className={`font-medium text-[11px] xl:text-xs flex items-center justify-center lg:justify-start gap-1.5 ${isLight ? 'text-slate-400' : 'text-blue-100/70'}`}>
+              Mulai sekarang <Sparkles className={`w-3.5 h-3.5 ${isLight ? 'text-primary/60' : 'text-blue-100/70'}`} />
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-3 xl:space-y-4">
             <div className="space-y-1">
-              <label className={`text-[9px] xl:text-[10px] font-black uppercase tracking-[0.1em] ml-1 ${isLight ? 'text-slate-500' : 'text-white/60'}`}>Email</label>
+              <label className={`text-[9px] xl:text-[10px] font-black uppercase tracking-[0.1em] ml-1 ${isLight ? 'text-slate-500' : 'text-blue-100/90'}`}>Email</label>
               <div className="relative group/input">
                 <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
                   isLight 
@@ -80,7 +80,7 @@ export const LoginCard = ({ theme = 'dark' }: { theme?: 'light' | 'dark' }) => {
                   className={`w-full border outline-none text-xs font-medium transition-all rounded-xl py-2 xl:py-2.5 pl-10 pr-4 ${
                     isLight 
                       ? 'bg-white/80 border-blue-100/80 text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:bg-white focus:border-primary/50' 
-                      : 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-white/20 focus:bg-white/10'
+                      : 'bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:ring-2 focus:ring-white/20 focus:bg-white/10'
                   }`}
                   required
                   suppressHydrationWarning
@@ -89,7 +89,7 @@ export const LoginCard = ({ theme = 'dark' }: { theme?: 'light' | 'dark' }) => {
             </div>
 
             <div className="space-y-1">
-              <label className={`text-[9px] xl:text-[10px] font-black uppercase tracking-[0.1em] ml-1 ${isLight ? 'text-slate-500' : 'text-white/60'}`}>Password</label>
+              <label className={`text-[9px] xl:text-[10px] font-black uppercase tracking-[0.1em] ml-1 ${isLight ? 'text-slate-500' : 'text-blue-100/90'}`}>Password</label>
               <div className="relative group/input">
                 <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
                   isLight 
@@ -104,7 +104,7 @@ export const LoginCard = ({ theme = 'dark' }: { theme?: 'light' | 'dark' }) => {
                   className={`w-full border outline-none text-xs font-medium transition-all rounded-xl py-2 xl:py-2.5 pl-10 pr-10 ${
                     isLight 
                       ? 'bg-white/80 border-blue-100/80 text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:bg-white focus:border-primary/50' 
-                      : 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-white/20 focus:bg-white/10'
+                      : 'bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:ring-2 focus:ring-white/20 focus:bg-white/10'
                   }`}
                   required
                   suppressHydrationWarning
@@ -119,7 +119,7 @@ export const LoginCard = ({ theme = 'dark' }: { theme?: 'light' | 'dark' }) => {
               </div>
             </div>
 
-            <div className={`flex items-center justify-between text-[10px] font-bold px-1 pt-0.5 ${isLight ? 'text-slate-500' : 'text-white/60'}`}>
+            <div className={`flex items-center justify-between text-[10px] font-bold px-1 pt-0.5 ${isLight ? 'text-slate-500' : 'text-blue-100/80'}`}>
               <label className="flex items-center gap-2 cursor-pointer group/check">
                 <div className={`w-3.5 h-3.5 rounded-sm flex items-center justify-center transition-all ${
                   isLight 
@@ -144,7 +144,7 @@ export const LoginCard = ({ theme = 'dark' }: { theme?: 'light' | 'dark' }) => {
           </form>
 
           <div className="text-center pt-0.5">
-            <p className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+            <p className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-blue-100/70'}`}>
               Belum punya akun? <Link href="/register" className={`font-bold hover:underline decoration-white/30 underline-offset-4 transition-colors ${
                 isLight ? 'text-primary decoration-primary/30' : 'text-white decoration-white/30'
               }`}>Daftar sekarang</Link>

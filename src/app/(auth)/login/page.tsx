@@ -31,7 +31,7 @@ const LoginPage = () => {
 
       {/* Navbar Container */}
       <header className="shrink-0 relative z-20">
-        <Navbar theme="dark" />
+        <Navbar />
       </header>
 
 

@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  TrendingUp, TrendingDown, Wallet, DollarSign, ArrowRight, Receipt, Calendar, Info, ChevronDown
+  TrendingUp, TrendingDown, Wallet, DollarSign, Receipt, Calendar, Info, ChevronDown
 } from "lucide-react";
 import FullPageLoader from "@/components/layout/FullPageLoader";
-import SectionLoader from "@/components/layout/SectionLoader";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -36,15 +35,7 @@ interface ChartData {
   labaRugi:    { name: string; untung: number; rugi: number }[];
 }
 
-interface RecentTransaction {
-  id: string;
-  reference_number: string;
-  transaction_date: string;
-  total_income: number;
-  total_expense: number;
-  net_balance: number;
-  description: string | null;
-}
+
 
 // ─── Empty chart fallback (12 bulan kosong) ───────────────────────────────────
 
@@ -103,7 +94,7 @@ const ChartCard = ({
   const maxVal    = Math.max(...allValues, 1);
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-100 p-6 sm:p-8 shadow-sm flex flex-col h-[380px] sm:h-[460px] hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 group relative overflow-hidden">
+    <div className="bg-white rounded-2xl border border-zinc-100 p-6 sm:p-8 shadow-sm flex flex-col h-[280px] sm:h-[340px] hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 group relative overflow-hidden">
       <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-4 mb-6 relative z-10">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-zinc-50 text-zinc-400 rounded-2xl group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm shrink-0">
@@ -164,7 +155,6 @@ export default function TenantDashboard() {
   const [profile,  setProfile]  = useState<Profile | null>(null);
   const [summary,  setSummary]  = useState<FinancialSummary | null>(null);
   const [charts,   setCharts]   = useState<ChartData>(emptyCharts);
-  const [recentTx, setRecentTx] = useState<RecentTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFiltering, setIsFiltering] = useState(false);
   // Branch Filter States
@@ -221,14 +211,7 @@ export default function TenantDashboard() {
           setCharts(json.financials.charts);
         }
 
-        // Fetch Recent Transactions
-        const txUrl = `/api/backend/transaction/group?profile_id=${profile.id}&limit=5` + 
-                      (selectedBranchId !== "all" ? `&branch_id=${selectedBranchId}` : "");
-        const txRes = await fetch(txUrl);
-        if (txRes.ok) {
-          const txJson = await txRes.json();
-          setRecentTx(txJson.data);
-        }
+
       } catch (err) {
         console.error("Failed to fetch filtered data:", err);
       } finally {
@@ -245,7 +228,6 @@ export default function TenantDashboard() {
 
   return (
     <div className="w-full flex flex-col gap-4 py-2 pb-20 px-4 sm:px-6">
-      {isLoading && <FullPageLoader />}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 py-2">
@@ -297,85 +279,13 @@ export default function TenantDashboard() {
 
 
 
-      {/* Charts 2x2 */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 transition-all duration-300 ease-in-out ${
+      {/* Charts 3-col horizontal */}
+      <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 transition-all duration-300 ease-in-out ${
         isFiltering ? "opacity-40 blur-[1px] scale-[0.995]" : "opacity-100 blur-0 scale-100"
       }`}>
         <ChartCard title="Saldo Akumulatif" value={formatShort(summary?.totalSaldo ?? 0)} color="#3c39d6" data={charts.saldo} dataKey="saldo" icon={<Wallet className="w-6 h-6" />} />
         <ChartCard title="Pendapatan Bersih" value={formatShort(summary?.totalPendapatan ?? 0)} color="#10b981" data={charts.pendapatan} dataKey="pendapatan" icon={<TrendingUp className="w-6 h-6" />} />
         <ChartCard title="Pengeluaran Bersih" value={formatShort(summary?.totalPengeluaran ?? 0)} color="#f43f5e" data={charts.pengeluaran} dataKey="pengeluaran" icon={<TrendingDown className="w-6 h-6" />} negative />
-        <ChartCard title="Laba & Rugi" value={formatShort(summary?.netProfit ?? 0)} color="#10b981" data={charts.labaRugi} dataKey={["untung", "rugi"]} icon={<DollarSign className="w-6 h-6" />} isProfitLoss />
-      </div>
-
-      {/* Recent Transactions Section */}
-      <div className={`mt-4 space-y-4 transition-all duration-300 ease-in-out ${
-        isFiltering ? "opacity-40 blur-[1px] scale-[0.995]" : "opacity-100 blur-0 scale-100"
-      }`}>
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <h3 className="text-xl font-bold text-[#030037] tracking-tight">Transaksi Terakhir</h3>
-            <p className="text-xs text-zinc-400 font-medium">5 aktivitas finansial terbaru Anda.</p>
-          </div>
-          <button onClick={() => router.push("/backend/tenant/transactions")} className="text-xs font-bold text-primary flex items-center gap-1.5 hover:gap-2.5 transition-all">
-            LIHAT SEMUA <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden shadow-sm">
-           <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-zinc-50/50 border-b border-zinc-50">
-                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Referensi</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Tanggal</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Pemasukan</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Pengeluaran</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Net</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-50">
-                   {isLoading ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-20 text-center">
-                        <SectionLoader text="Memuat Transaksi Terakhir..." />
-                      </td>
-                    </tr>
-                   ) : recentTx.length > 0 ? (
-                    recentTx.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-zinc-50/50 transition-colors group cursor-pointer">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                              <Receipt className="w-4 h-4" />
-                            </div>
-                            <span className="text-xs font-bold text-zinc-900 uppercase">#{tx.reference_number || tx.id.slice(0, 6)}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-xs font-medium text-zinc-500 italic">
-                            {new Date(tx.transaction_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-xs font-black text-emerald-600">{formatCurrency(tx.total_income)}</td>
-                        <td className="px-6 py-4 text-xs font-black text-rose-600">{formatCurrency(tx.total_expense)}</td>
-                        <td className="px-6 py-4">
-                           <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${tx.net_balance >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
-                              {formatCurrency(tx.net_balance)}
-                           </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-zinc-400 text-xs font-medium italic">
-                        Belum ada transaksi tercatat.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-           </div>
-        </div>
       </div>
     </div>
   );

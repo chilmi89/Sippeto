@@ -452,18 +452,24 @@ export default function TenantProductsPage() {
         );
     }
 
+    if (loading) {
+        return (
+            <div className="min-h-[400px] flex items-center justify-center">
+                <SectionLoader />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-[#030037] font-heading">
-                        {isOwner ? "Dashboard Monitoring & CRUD Produk Pusat" : "Daftar & CRUD Produk Lokal Cabang"}
+                        Manajemen Produk & Stok
                     </h1>
                     <p className="text-sm text-zinc-500">
-                        {isOwner 
-                            ? "Lihat seluruh produk pusat & cabang, edit data pusat, atau monitoring stok cabang secara terintegrasi." 
-                            : `Buat produk khusus cabang Anda, update stok opname, atau jual produk standard dari pusat.`}
+                        Kelola katalog produk, pantau persediaan stok cabang, dan lakukan penyesuaian stok secara real-time.
                     </p>
                 </div>
                 <button 
@@ -471,7 +477,7 @@ export default function TenantProductsPage() {
                     className="inline-flex items-center gap-2 px-5 py-3 bg-[#3c39d6] text-white hover:bg-[#3c39d6]/90 transition-all font-bold text-sm rounded-2xl shadow-lg shadow-[#3c39d6]/20 shrink-0"
                 >
                     <Plus className="w-4 h-4" />
-                    {isOwner ? "Tambah Produk Pusat" : "Tambah Produk Lokal Cabang"}
+                    {isOwner ? "Tambah Produk Pusat" : "Tambah Produk Lokal"}
                 </button>
             </div>
 
@@ -484,7 +490,7 @@ export default function TenantProductsPage() {
                         placeholder="Cari produk berdasarkan nama..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-zinc-50 border border-zinc-200 pl-11 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#3c39d6] transition-all text-zinc-800 placeholder-zinc-400"
+                        className="w-full bg-zinc-50 border border-zinc-200 pl-11 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#3c39d6] transition-all text-black placeholder-zinc-400 font-bold"
                     />
                 </div>
                 
@@ -493,11 +499,11 @@ export default function TenantProductsPage() {
                     <select 
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="bg-transparent border-0 text-zinc-700 text-xs font-semibold focus:outline-none cursor-pointer w-full md:w-36"
+                        className="bg-transparent border-0 text-black text-xs font-semibold focus:outline-none cursor-pointer w-full md:w-36"
                     >
-                        <option value="all">Semua Kategori</option>
+                        <option value="all" className="text-black bg-white">Semua Kategori</option>
                         {categories.map((c) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
+                            <option key={c.id} value={c.id} className="text-black bg-white">{c.name}</option>
                         ))}
                     </select>
                 </div>
@@ -507,11 +513,11 @@ export default function TenantProductsPage() {
                     <select 
                         value={selectedOwnerFilter}
                         onChange={(e) => setSelectedOwnerFilter(e.target.value)}
-                        className="bg-transparent border-0 text-zinc-700 text-xs font-semibold focus:outline-none cursor-pointer w-full md:w-36"
+                        className="bg-transparent border-0 text-black text-xs font-semibold focus:outline-none cursor-pointer w-full md:w-36"
                     >
-                        <option value="all">Semua Asal Produk</option>
-                        <option value="pusat">Produk Pusat (Pusat)</option>
-                        <option value="cabang">Produk Lokal Cabang</option>
+                        <option value="all" className="text-black bg-white">Semua Asal Produk</option>
+                        <option value="pusat" className="text-black bg-white">Produk Pusat (Pusat)</option>
+                        <option value="cabang" className="text-black bg-white">Produk Lokal Cabang</option>
                     </select>
                 </div>
             </div>
@@ -707,44 +713,44 @@ export default function TenantProductsPage() {
                                 <>
                                     {/* Baris 1: Nama Produk */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Nama Produk <span className="text-rose-500">*</span></label>
+                                        <label className="text-[10px] font-extrabold text-zinc-900 uppercase tracking-widest pl-0.5">Nama Produk <span className="text-rose-500">*</span></label>
                                         <input 
                                             type="text" 
                                             required 
                                             value={formName}
                                             onChange={(e) => setFormName(e.target.value)}
                                             placeholder="Contoh: Royal Canin Kitten 2kg"
-                                            className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200"
+                                            className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-black placeholder-zinc-400 focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200 font-bold"
                                         />
                                     </div>
 
                                     {/* Baris 2: Kategori & Gambar */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Kategori Produk</label>
+                                            <label className="text-[10px] font-extrabold text-zinc-900 uppercase tracking-widest pl-0.5">Kategori Produk</label>
                                             <select 
                                                 value={formCategoryId}
                                                 onChange={(e) => setFormCategoryId(e.target.value)}
-                                                className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-zinc-700 focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200 cursor-pointer"
+                                                className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200 cursor-pointer font-bold"
                                             >
-                                                <option value="">Pilih Kategori</option>
+                                                <option value="" className="text-black bg-white">Pilih Kategori</option>
                                                 {categories.map((c) => (
-                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                    <option key={c.id} value={c.id} className="text-black bg-white">{c.name}</option>
                                                 ))}
                                             </select>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Gambar Produk</label>
+                                            <label className="text-[10px] font-extrabold text-zinc-900 uppercase tracking-widest pl-0.5">Gambar Produk</label>
                                             <div className="flex items-center gap-4 bg-zinc-50/40 p-3 rounded-xl border border-zinc-200/60">
                                                 {formImageUrl ? (
                                                     <img 
                                                         src={formImageUrl} 
                                                         alt="Pratinjau" 
-                                                        className="w-14 h-14 object-cover rounded-lg border border-zinc-150 shrink-0" 
+                                                        className="w-14 h-14 object-cover rounded-lg border border-zinc-155 shrink-0" 
                                                     />
                                                 ) : (
                                                     <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center text-zinc-450 shrink-0 border border-zinc-200/80 border-dashed">
-                                                        <Package className="w-5 h-5 text-zinc-400" />
+                                                        <Package className="w-5 h-5 text-zinc-455" />
                                                     </div>
                                                 )}
                                                 <div className="flex flex-col gap-1">
@@ -757,7 +763,7 @@ export default function TenantProductsPage() {
                                                     />
                                                     <label 
                                                         htmlFor="product-image-upload"
-                                                        className="px-3.5 py-2 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 transition-all font-bold text-xs rounded-lg cursor-pointer inline-flex items-center justify-center shadow-sm"
+                                                        className="px-3.5 py-2 bg-white border border-zinc-200 text-black hover:bg-zinc-50 hover:text-black transition-all font-bold text-xs rounded-lg cursor-pointer inline-flex items-center justify-center shadow-sm"
                                                     >
                                                         {uploadingImage ? "Mengunggah..." : "Pilih Gambar"}
                                                     </label>
@@ -777,34 +783,34 @@ export default function TenantProductsPage() {
 
                                     {/* Baris 3: Deskripsi */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Deskripsi Produk</label>
+                                        <label className="text-[10px] font-extrabold text-zinc-900 uppercase tracking-widest pl-0.5">Deskripsi Produk</label>
                                         <textarea 
                                             value={formDescription}
                                             onChange={(e) => setFormDescription(e.target.value)}
                                             rows={2}
                                             placeholder="Penjelasan singkat mengenai spesifikasi produk..."
-                                            className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200"
+                                            className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-black placeholder-zinc-400 focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200 font-bold"
                                         />
                                     </div>
 
                                     {/* Baris 4: Harga Modal & Jual */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Harga Modal / Beli (Rp)</label>
+                                            <label className="text-[10px] font-extrabold text-zinc-900 uppercase tracking-widest pl-0.5">Harga Modal / Beli (Rp)</label>
                                             <input 
                                                 type="number" 
                                                 value={formBasePrice}
                                                 onChange={(e) => setFormBasePrice(e.target.value === "" ? "" : Number(e.target.value))}
-                                                className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-zinc-800 focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200"
+                                                className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200 font-bold"
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Harga Jual Dasar (Rp)</label>
+                                            <label className="text-[10px] font-extrabold text-zinc-900 uppercase tracking-widest pl-0.5">Harga Jual Dasar (Rp)</label>
                                             <input 
                                                 type="number" 
                                                 value={formSellPrice}
                                                 onChange={(e) => setFormSellPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                                                className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-[#030037] font-bold focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200"
+                                                className="w-full bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-200/80 rounded-xl px-4 py-3 text-sm text-black font-bold focus:outline-none focus:border-[#3c39d6] focus:ring-4 focus:ring-[#3c39d6]/5 focus:bg-white transition-all duration-200"
                                             />
                                         </div>
                                     </div>
@@ -924,11 +930,11 @@ export default function TenantProductsPage() {
                                                             stock: e.target.value === "" ? "" : Number(e.target.value)
                                                         }
                                                     }))}
-                                                    className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-[#030037] font-black focus:outline-none focus:border-[#3c39d6]"
+                                                    className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-black font-black focus:outline-none focus:border-[#3c39d6]"
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block">Batas Minimum Stok (Alert)</label>
+                                                <label className="text-xs font-bold text-zinc-550 uppercase tracking-wider block">Batas Minimum Stok (Alert)</label>
                                                 <input 
                                                     type="number" 
                                                     value={branchStocksInput[userProfile?.branch_id]?.min_stock ?? ""}
@@ -939,7 +945,7 @@ export default function TenantProductsPage() {
                                                             min_stock: e.target.value === "" ? "" : Number(e.target.value)
                                                         }
                                                     }))}
-                                                    className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-700 focus:outline-none focus:border-[#3c39d6]"
+                                                    className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-[#3c39d6] font-bold"
                                                 />
                                             </div>
                                         </div>

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getDailyReportData } from "./actions";
+import BranchReportFilter from "@/components/dashboard/BranchReportFilter";
 
 // Memaksa render dinamis agar data database selalu diperbarui pada setiap request
 export const dynamic = "force-dynamic";
@@ -184,34 +185,12 @@ export default async function DailyReportPage({ searchParams }: PageProps) {
 
           <div className="hidden sm:block w-px h-8 bg-zinc-200/80 sm:mx-1" />
 
-          {/* Filter Cabang berbasis Link Tab (Tanpa Javascript) */}
-          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-            {!userBranchId && (
-              <Link
-                href="?branch_id=all"
-                className={`px-3 py-2 text-xs font-bold rounded-xl transition-all ${
-                  selectedBranchId === "all"
-                    ? "bg-[#030037] text-white shadow-md shadow-zinc-950/20"
-                    : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100 border border-zinc-200/60"
-                }`}
-              >
-                Semua Cabang
-              </Link>
-            )}
-            {branches.map((b) => (
-              <Link
-                key={b.id}
-                href={`?branch_id=${b.id}`}
-                className={`px-3 py-2 text-xs font-bold rounded-xl transition-all ${
-                  selectedBranchId === b.id
-                    ? "bg-[#030037] text-white shadow-md shadow-zinc-950/20"
-                    : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100 border border-zinc-200/60"
-                }`}
-              >
-                {b.name}
-              </Link>
-            ))}
-          </div>
+          {/* Filter Cabang berbasis Dropdown */}
+          <BranchReportFilter
+            branches={branches}
+            selectedBranchId={selectedBranchId}
+            userBranchId={userBranchId}
+          />
 
           <div className="hidden sm:block w-px h-8 bg-zinc-200/80 sm:mx-1" />
 

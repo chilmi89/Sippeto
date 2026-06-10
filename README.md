@@ -34,3 +34,7 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Aturan Pengembangan Khusus (Workspace Rules)
+
+- **Warna Teks & Input**: Selalu gunakan warna teks **hitam secara default** (`text-black` atau `text-zinc-900`) untuk semua input field, select dropdown, label, dan elemen formulir interaktif lainnya. Dilarang men-generate teks putih atau abu-abu pudar di atas latar belakang terang agar kontras dan keterbacaan teks selalu terjaga.
