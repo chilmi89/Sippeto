@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
     try {
         const body = await req.json();
-                const { id, business_name, phone_number, address, full_name, bio, avatar_url, banner_url, username, payment_qr } = body;
+        const { id, business_name, phone_number, address, full_name, bio, avatar_url, banner_url, username, payment_qr, metadata } = body;
 
         if (!id) {
             return NextResponse.json({ error: "ID Profile tidak ditemukan" }, { status: 400 });
@@ -95,16 +95,17 @@ export async function PATCH(req: Request) {
         const updated = await prisma.profiles.update({
             where: { id },
             data: {
-                full_name: full_name ?? undefined,
-                business_name: business_name ?? null,
-                phone_number: phone_number ?? null,
-                address: address ?? null,
-                bio: bio ?? null,
-                avatar_url: avatar_url ?? undefined, // Bisa memperbarui avatar
-                banner_url: banner_url ?? undefined, // Memperbarui banner
-                username: cleanUsername, // Memperbarui username/slug toko
+                full_name: full_name !== undefined ? full_name : undefined,
+                business_name: business_name !== undefined ? business_name : undefined,
+                phone_number: phone_number !== undefined ? phone_number : undefined,
+                address: address !== undefined ? address : undefined,
+                bio: bio !== undefined ? bio : undefined,
+                avatar_url: avatar_url !== undefined ? avatar_url : undefined,
+                banner_url: banner_url !== undefined ? banner_url : undefined,
+                username: cleanUsername, // Memperbarui username/slug toko (bisa bernilai undefined, null, atau string)
                 role_id: ownerRole?.id, // Pastikan role jadi OWNER saat data lengkap
                 payment_qr: payment_qr !== undefined ? payment_qr : undefined,
+                metadata: metadata !== undefined ? metadata : undefined,
             },
             select: {
                 id: true,
@@ -121,6 +122,7 @@ export async function PATCH(req: Request) {
                 username: true,
                 created_at: true,
                 payment_qr: true,
+                metadata: true,
             },
         });
 

@@ -366,6 +366,7 @@ function BentoCard({
           whileHover={{ rotate: 10, scale: 1.05 }}
           className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center transition-all duration-300 text-white"
         >
+
           {icon}
         </motion.div>
         <div>
@@ -576,7 +577,7 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/10 bg-blue-500/5 text-[9px] font-bold text-blue-400 shadow-inner"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-            SiPetto Core v2.0 • Infrastruktur Keuangan &amp; Katalog UMKM
+            Sippeto Core v2.0 • Infrastruktur Keuangan &amp; Katalog UMKM
           </motion.div>
 
           <motion.h1
@@ -586,7 +587,7 @@ export default function LandingPage() {
             className="font-extrabold text-3xl sm:text-4xl md:text-5xl tracking-tight leading-[1.15] text-white"
           >
             Kelola Keuangan Bisnis <br />
-            <span className="text-yellow-400">Bersama SiPetto</span>
+            <span className="text-yellow-400">Bersama Sippeto</span>
           </motion.h1>
 
           <motion.p

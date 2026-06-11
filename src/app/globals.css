@@ -16,7 +16,7 @@
   --color-secondary: var(--brand-secondary);
   --color-accent: var(--brand-accent);
   --color-neutral: var(--brand-neutral);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-poppins);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -29,6 +29,15 @@
     background: linear-gradient(to right, var(--brand-secondary), var(--brand-primary), var(--brand-secondary));
     background-size: 200% 100%;
     animation: gradient 15s ease-in-out infinite;
+  }
+
+  /* Sembunyikan scrollbar (untuk filter tabs overflow-x) */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -45,8 +54,12 @@
   }
 
   :root {
-    --font-sans: var(--font-jakarta), var(--font-inter);
-    --font-heading: var(--font-outfit);
+    --font-poppins: var(--font-poppins);
+    --font-jakarta: var(--font-poppins);
+    --font-inter: var(--font-poppins);
+    --font-outfit: var(--font-poppins);
+    --font-sans: var(--font-poppins), sans-serif;
+    --font-heading: var(--font-poppins), sans-serif;
   }
 
   body {

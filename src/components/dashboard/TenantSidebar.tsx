@@ -18,7 +18,8 @@ import {
   Receipt,
   ChevronDown,
   Sliders,
-  Globe
+  Globe,
+  ShoppingBag
 } from "lucide-react";
 
 type NavItem = {
@@ -37,13 +38,13 @@ const tenantNavItems: NavItem[] = [
     href: "/backend/tenant/sales",
     subItems: [
       { label: "Kasir", href: "/backend/tenant/sales" },
-      { label: "Data - Penjualan", href: "/backend/tenant/sales/history" },
+      { label: "Data Penjualan & Pesanan", href: "/backend/tenant/sales/history" },
     ]
   },
   { 
     icon: Package, 
     label: "Produk", 
-    href: "/backend/tenant/products",
+    href: "/backend/tenant/products", 
     subItems: [
       { label: "Daftar Produk", href: "/backend/tenant/products", permission: "kelola_produk" },
       { label: "Kelola Stok", href: "/backend/tenant/stocks", permission: "kelola_stok" },
@@ -137,12 +138,16 @@ export const TenantSidebar = () => {
         {/* Header Logo */}
         <div className={`flex items-center justify-between mb-8 pt-2 shrink-0 ${isOpen ? "" : "lg:justify-center"}`}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary rounded-xl shrink-0 flex items-center justify-center">
-               <Store className="w-5 h-5 text-white" />
+            <div className="shrink-0 flex items-center justify-center">
+               <img 
+                 src="/logo/Logo Sippeto 1.png" 
+                 alt="Logo Sippeto" 
+                 className="w-10 h-10 object-contain rounded-xl"
+               />
             </div>
             {isOpen && (
               <div className="animate-in fade-in duration-300">
-                <h1 className="text-xl font-black tracking-tightest font-heading uppercase italic leading-none">SiPetto</h1>
+                <h1 className="text-xl font-black tracking-tightest font-heading uppercase leading-none">Sippeto</h1>
                 <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.3em] mt-1 font-sans leading-none">
                   Tenant Portal
                 </p>
