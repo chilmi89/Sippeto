@@ -6,8 +6,6 @@ import {
   ArrowRight, ArrowLeft, ShieldCheck, Calendar, Camera, AlignLeft, 
   Image as ImageIcon, Save, Copy, Check, ExternalLink, Globe, MessageSquare, Share2
 } from 'lucide-react';
-import FullPageLoader from '@/components/layout/FullPageLoader';
-import SectionLoader from '@/components/layout/SectionLoader';
 import { toast } from 'react-toastify';
 
 interface Profile {
@@ -25,6 +23,7 @@ interface Profile {
   banner_url?: string;
   username?: string | null;
   payment_qr?: string | null;
+  metadata?: any;
 }
 
 const ProfileTenantPage = () => {
@@ -46,7 +45,8 @@ const ProfileTenantPage = () => {
     const [uploadingFiles, setUploadingFiles] = useState(false);
 
     const [editData, setEditData] = useState({
-        full_name: "", business_name: "", phone_number: "", address: "", bio: "", username: ""
+        full_name: "", business_name: "", phone_number: "", address: "", bio: "", username: "",
+        metadata: {} as any
     });
 
     const fetchProfile = async () => {
@@ -59,7 +59,8 @@ const ProfileTenantPage = () => {
                 setEditData({
                     full_name: data.full_name || "", business_name: data.business_name || "",
                     phone_number: data.phone_number || "", address: data.address || "", bio: data.bio || "",
-                    username: data.username || ""
+                    username: data.username || "",
+                    metadata: data.metadata || {}
                 });
                 setAvatarPreview(data.avatar_url || null);
                 setBannerPreview(data.banner_url || null);
@@ -126,7 +127,43 @@ const ProfileTenantPage = () => {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    if (loading && !profile) return <FullPageLoader />;
+    const handleToggleAddress = async () => {
+        if (!profile) return;
+        const currentMeta = (profile.metadata as any) || {};
+        const newHideAddress = !currentMeta.hide_checkout_address;
+        
+        try {
+            const res = await fetch('/api/umkm', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: profile.id,
+                    metadata: {
+                        ...currentMeta,
+                        hide_checkout_address: newHideAddress
+                    }
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                toast.success(newHideAddress ? "Alamat pengiriman dinonaktifkan!" : "Alamat pengiriman diaktifkan!");
+                setProfile(prev => prev ? { ...prev, metadata: { ...currentMeta, hide_checkout_address: newHideAddress } } : null);
+                setEditData(prev => ({
+                    ...prev,
+                    metadata: {
+                        ...currentMeta,
+                        hide_checkout_address: newHideAddress
+                    }
+                }));
+            } else {
+                toast.error(data.error || "Gagal memperbarui pengaturan.");
+            }
+        } catch {
+            toast.error("Gagal memperbarui pengaturan alamat.");
+        }
+    };
+
+
 
     const displayName = profile?.business_name ?? profile?.full_name ?? "Toko Anda";
 
@@ -292,11 +329,7 @@ const ProfileTenantPage = () => {
                     ) : (
                         /* EDITING MODE: Full-width form card */
                         <div className="col-span-12 bg-white rounded-2xl border border-zinc-100 p-6 sm:p-8 relative overflow-hidden shadow-sm">
-                            {uploadingFiles && (
-                                <div className="absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center backdrop-blur-sm rounded-2xl">
-                                    <SectionLoader text="Mengunggah berkas..." />
-                                </div>
-                            )}
+
                             
                             <div className="flex items-center gap-3 border-b border-zinc-100 pb-4 mb-6">
                                 <div className="p-2 bg-primary/10 rounded-xl"><Edit className="w-4 h-4 text-primary" /></div>
@@ -344,6 +377,8 @@ const ProfileTenantPage = () => {
                                         placeholder="Jalan, RT/RW, Kelurahan, Kecamatan, Kota" />
                                 </div>
 
+
+
                                 <div className="space-y-2 border-t border-zinc-100 pt-4">
                                     <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 ml-1">QR Code Pembayaran (Pusat)</label>
                                     <div className="flex flex-col sm:flex-row items-center gap-4 bg-zinc-50 border border-zinc-200 rounded-2xl p-4">
@@ -370,7 +405,7 @@ const ProfileTenantPage = () => {
                                 
                                 <button type="submit" disabled={loading} className="w-full bg-[#030037] py-3.5 rounded-xl text-xs font-bold uppercase tracking-widest text-white hover:bg-primary transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#030037]/10">
                                     <Save className="w-4 h-4" />
-                                    {loading ? "Menyimpan..." : "Simpan Semua Perubahan"}
+                                    Simpan Semua Perubahan
                                 </button>
                             </form>
                         </div>
@@ -402,6 +437,37 @@ const ProfileTenantPage = () => {
                                                 Pelanggan Anda dapat melihat daftar produk, harga, deskripsi, dan melakukan checkout langsung terkirim ke WhatsApp Anda.
                                             </p>
                                         </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-150 rounded-2xl">
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-3 bg-zinc-100 text-zinc-500 rounded-xl shrink-0">
+                                                <MapPin className="w-6 h-6 text-zinc-500" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h4 className="text-sm font-bold text-zinc-900">Alamat Pengiriman Pelanggan</h4>
+                                                <p className="text-xs text-zinc-500 font-medium">
+                                                    {profile?.metadata?.hide_checkout_address 
+                                                        ? "Pelanggan tidak perlu mengisi alamat pengiriman saat checkout."
+                                                        : "Pelanggan wajib mengisi alamat lengkap saat checkout."}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Toggle Switch langsung di tab Integrasi */}
+                                        <button
+                                            type="button"
+                                            onClick={handleToggleAddress}
+                                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                                !(profile?.metadata?.hide_checkout_address) ? 'bg-emerald-500' : 'bg-zinc-200'
+                                            }`}
+                                        >
+                                            <span
+                                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                                    !(profile?.metadata?.hide_checkout_address) ? 'translate-x-5' : 'translate-x-0'
+                                                }`}
+                                            />
+                                        </button>
                                     </div>
 
                                     {/* Store Link Section */}

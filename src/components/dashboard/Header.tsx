@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Search, Bell, User, Menu, LogOut, ChevronDown, Settings } from "lucide-react";
+import { Search, User, Menu, LogOut, ChevronDown, Settings } from "lucide-react";
 import { useSidebar } from "@/lib/context/SidebarContext";
 import { useRouter } from "next/navigation";
+import { NotificationDropdown } from "@/components/dashboard/NotificationDropdown";
 
 interface CurrentUser {
   id: string;
@@ -111,13 +112,7 @@ export const DashboardHeader = () => {
 
         {/* User & Actions */}
         <div className="flex items-center gap-2 md:gap-4 border-l border-zinc-100 pl-3 md:pl-8">
-          <button
-            className="relative p-2 bg-zinc-50 rounded-full hover:bg-zinc-100 transition-colors hidden sm:block"
-            suppressHydrationWarning
-          >
-            <Bell className="w-5 h-5 text-zinc-500" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-          </button>
+          <NotificationDropdown />
 
           {/* Profile Dropdown */}
           <div ref={dropdownRef} className="relative">
