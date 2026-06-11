@@ -283,9 +283,9 @@ export default function TenantDashboard() {
       <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 transition-all duration-300 ease-in-out ${
         isFiltering ? "opacity-40 blur-[1px] scale-[0.995]" : "opacity-100 blur-0 scale-100"
       }`}>
-        <ChartCard title="Saldo Akumulatif" value={formatShort(summary?.totalSaldo ?? 0)} color="#3c39d6" data={charts.saldo} dataKey="saldo" icon={<Wallet className="w-6 h-6" />} />
-        <ChartCard title="Pendapatan Bersih" value={formatShort(summary?.totalPendapatan ?? 0)} color="#10b981" data={charts.pendapatan} dataKey="pendapatan" icon={<TrendingUp className="w-6 h-6" />} />
-        <ChartCard title="Pengeluaran Bersih" value={formatShort(summary?.totalPengeluaran ?? 0)} color="#f43f5e" data={charts.pengeluaran} dataKey="pengeluaran" icon={<TrendingDown className="w-6 h-6" />} negative />
+        <ChartCard title="Pendapatan" value={formatShort(summary?.totalPendapatan ?? 0)} color="#10b981" data={charts.pendapatan} dataKey="pendapatan" icon={<TrendingUp className="w-6 h-6" />} />
+        <ChartCard title="Pengeluaran" value={formatShort(summary?.totalPengeluaran ?? 0)} color="#f43f5e" data={charts.pengeluaran} dataKey="pengeluaran" icon={<TrendingDown className="w-6 h-6" />} negative />
+        <ChartCard title="laba" value={formatShort(summary?.totalSaldo ?? 0)} color="#3c39d6" data={charts.saldo} dataKey="saldo" icon={<Wallet className="w-6 h-6" />} />
       </div>
     </div>
   );
