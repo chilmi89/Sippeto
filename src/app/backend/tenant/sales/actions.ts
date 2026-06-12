@@ -193,9 +193,9 @@ export async function getPOSPageData(editId?: string | null) {
       initialBranchId: selectedBranchId,
       editTransaction
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("getPOSPageData error:", error);
-    return { status: "error", message: "Gagal memuat konfigurasi kasir" };
+    return { status: "error", message: `Gagal memuat konfigurasi kasir: ${error.message || error}` };
   }
 }
 
