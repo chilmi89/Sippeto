@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ShoppingCart,
   Trash2,
@@ -15,7 +15,8 @@ import {
   Store,
   ChevronDown,
   Edit2,
-  Receipt
+  Receipt,
+  Search
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -102,6 +103,26 @@ export default function POSForm({
   // Success Modal
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<any>(null);
+
+  // Search & Filter & Bluetooth States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("all");
+  const [isPrintingBt, setIsPrintingBt] = useState(false);
+  const [isBluetoothSupported, setIsBluetoothSupported] = useState(false);
+  const [productSearchQuery, setProductSearchQuery] = useState("");
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+
+  useEffect(() => {
+    setIsBluetoothSupported(typeof window !== "undefined" && !!(navigator as any).bluetooth);
+  }, []);
+
+  // Searched Products for custom combobox
+  const searchedProducts = useMemo(() => {
+    if (!productSearchQuery) return products;
+    return products.filter((p) =>
+      p.name.toLowerCase().includes(productSearchQuery.toLowerCase())
+    );
+  }, [products, productSearchQuery]);
 
   // Initialize form values
   useEffect(() => {
@@ -262,6 +283,7 @@ export default function POSForm({
     }
     
     setSelectedProductId("");
+    setProductSearchQuery("");
     setInputQty(1);
   };
 
@@ -385,7 +407,8 @@ export default function POSForm({
     doc.text("---------------------------------", 40, yPos, { align: "center" });
     doc.setFont("courier", "bold");
     doc.text("TOTAL :", 5, yPos + 5);
-    doc.text(formatCurrency(cartSubtotal).replace("Rp", "").trim(), 75, yPos + 5, { align: "right" });
+    const totalAmount = lastTransaction.items.reduce((sum: number, item: any) => sum + (item.product.sell_price * item.quantity), 0);
+    doc.text(formatCurrency(totalAmount).replace("Rp", "").trim(), 75, yPos + 5, { align: "right" });
 
     doc.setFont("courier", "normal");
     doc.setFontSize(7);
@@ -394,6 +417,106 @@ export default function POSForm({
 
     const pdfBlobUrl = doc.output("bloburl");
     window.open(pdfBlobUrl);
+  };
+
+  const handlePrintBluetoothDirect = async () => {
+    if (!lastTransaction) return;
+    try {
+      setIsPrintingBt(true);
+      
+      if (!(navigator as any).bluetooth) {
+        toast.error("Browser Anda tidak mendukung Web Bluetooth. Silakan gunakan Google Chrome.");
+        return;
+      }
+      
+      // Request device
+      const device = await (navigator as any).bluetooth.requestDevice({
+        filters: [
+          { services: ["0000ffe0-0000-1000-8000-00805f9b34fb"] },
+          { namePrefix: "MTP" },
+          { namePrefix: "PT" },
+          { namePrefix: "RP" },
+          { namePrefix: "Thermal" }
+        ],
+        optionalServices: ["0000ffe0-0000-1000-8000-00805f9b34fb"]
+      });
+
+      const server = await device.gatt?.connect();
+      if (!server) throw new Error("Gagal menghubungkan ke printer");
+
+      const service = await server.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb");
+      const characteristics = await service.getCharacteristics();
+      const writeChar = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
+
+      if (!writeChar) throw new Error("Tidak menemukan port tulis data printer");
+
+      const encoder = new TextEncoder();
+      const ESC = "\x1b";
+      const GS = "\x1d";
+      const LF = "\n";
+      
+      let data = "";
+      data += ESC + "@"; // Init
+      data += ESC + "a" + "\x01"; // Center
+      data += ESC + "!" + "\x10"; // Double height
+      data += (profile.business_name || "TOKO UMKM").toUpperCase() + LF;
+      data += ESC + "!" + "\x00"; // Normal
+      
+      const activeBranchName = branches.find(b => b.id === selectedBranchId)?.name || "Cabang Utama";
+      data += activeBranchName + LF;
+      data += "--------------------------------" + LF;
+      
+      data += ESC + "a" + "\x00"; // Left
+      data += `Nota : #${lastTransaction.reference_number}` + LF;
+      data += `Tgl  : ${new Date(lastTransaction.transaction_date || "").toLocaleDateString("id-ID")}` + LF;
+      data += `Cust : ${lastTransaction.customer_name}` + LF;
+      data += `Bayar: ${lastTransaction.payment_method}` + LF;
+      data += "--------------------------------" + LF;
+      
+      lastTransaction.items.forEach((item: CartItem) => {
+        const name = item.product.name.slice(0, 18);
+        const qtyText = `${item.quantity} x ${formatCurrency(item.product.sell_price).replace("Rp", "").trim()}`;
+        const subtotalText = formatCurrency(item.product.sell_price * item.quantity).replace("Rp", "").trim();
+        
+        data += name + LF;
+        const spacesCount = 32 - qtyText.length - subtotalText.length;
+        const spaces = " ".repeat(Math.max(1, spacesCount));
+        data += qtyText + spaces + subtotalText + LF;
+      });
+      
+      data += "--------------------------------" + LF;
+      
+      const totalText = "TOTAL :";
+      const totalVal = formatCurrency(lastTransaction.items.reduce((sum: number, i: CartItem) => sum + (i.product.sell_price * i.quantity), 0)).replace("Rp", "").trim();
+      const totalSpaces = 32 - totalText.length - totalVal.length;
+      data += totalText + " ".repeat(Math.max(1, totalSpaces)) + totalVal + LF;
+      data += LF;
+      
+      data += ESC + "a" + "\x01"; // Center
+      data += "Terima kasih atas kunjungan Anda!" + LF;
+      data += "SiPetto POS System" + LF;
+      data += LF + LF + LF; // Feed
+      
+      data += GS + "V" + "\x41" + "\x03"; // Cut
+      
+      const bytes = encoder.encode(data);
+      const chunkSize = 120;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.slice(i, i + chunkSize);
+        await writeChar.writeValue(chunk);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      
+      toast.success("Nota berhasil dicetak via Bluetooth!");
+      await device.gatt?.disconnect();
+    } catch (err: any) {
+      console.error(err);
+      if (err.name !== "NotFoundError" && err.message !== "User cancelled the requestDevice() choose device dialog.") {
+        toast.error(`Koneksi Bluetooth gagal: ${err.message || err}`);
+      }
+    } finally {
+      setIsPrintingBt(false);
+    }
   };
 
   const formatCurrency = (v: number) =>
@@ -477,19 +600,17 @@ export default function POSForm({
          {/* Layout Grid */}
          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
             
-            {/* LEFT COLUMN: Form Checkout & Pembayaran (5 Kolom) */}
+            {/* LEFT COLUMN: Detail Transaksi */}
             <div className="lg:col-span-5 bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm space-y-4">
-               <div className="flex items-center justify-between border-b border-zinc-150 pb-2">
-                  <h3 className="text-xs font-black text-[#030037] uppercase tracking-widest flex items-center gap-1.5">
-                     Detail Transaksi
-                  </h3>
-               </div>
+               <h3 className="text-xs font-black text-[#030037] uppercase tracking-widest border-b border-zinc-150 pb-2">
+                  Detail Transaksi
+               </h3>
 
                <div className="space-y-3">
                   {/* Row 1: Nota & Tanggal */}
                   <div className="grid grid-cols-2 gap-2">
                      <div className="space-y-0.5">
-                        <label className="text-[8px] font-black text-zinc-900 uppercase tracking-widest block pl-0.5">No. Nota</label>
+                        <label className="text-[8px] font-black text-zinc-950 uppercase tracking-widest block pl-0.5">No. Nota</label>
                         <input 
                            type="text"
                            className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-black outline-none focus:bg-white focus:border-[#10b981] focus:ring-2 focus:ring-emerald-500/10 transition-all"
@@ -498,7 +619,7 @@ export default function POSForm({
                         />
                      </div>
                      <div className="space-y-0.5">
-                        <label className="text-[8px] font-black text-zinc-900 uppercase tracking-widest block pl-0.5">Tanggal</label>
+                        <label className="text-[8px] font-black text-zinc-950 uppercase tracking-widest block pl-0.5">Tanggal</label>
                         <input 
                            type="date"
                            className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-black outline-none focus:bg-white focus:border-[#10b981] focus:ring-2 focus:ring-emerald-500/10 transition-all"
@@ -510,7 +631,7 @@ export default function POSForm({
 
                   {/* Row 2: Nama Pelanggan */}
                   <div className="space-y-0.5">
-                     <label className="text-[8px] font-black text-zinc-900 uppercase tracking-widest block pl-0.5">Pelanggan</label>
+                     <label className="text-[8px] font-black text-zinc-950 uppercase tracking-widest block pl-0.5">Pelanggan</label>
                      <div className="relative flex items-center">
                         <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
                         <input 
@@ -525,7 +646,7 @@ export default function POSForm({
 
                   {/* Row 3: Metode Pembayaran */}
                   <div className="space-y-1">
-                     <label className="text-[8px] font-black text-zinc-900 uppercase tracking-widest block pl-0.5">Metode Bayar</label>
+                     <label className="text-[8px] font-black text-zinc-950 uppercase tracking-widest block pl-0.5">Metode Bayar</label>
                      <div className="grid grid-cols-3 gap-1.5">
                        {paymentMethods.map(pm => {
                          const isActive = paymentMethodId === pm.id;
@@ -534,7 +655,7 @@ export default function POSForm({
                              key={pm.id}
                              type="button"
                              onClick={() => setPaymentMethodId(pm.id)}
-                             className={`px-2 py-2.5 rounded-xl text-xs font-bold border transition-all duration-200 flex flex-col items-center justify-center gap-1 select-none ${
+                             className={`px-2 py-2 rounded-xl text-xs font-bold border transition-all duration-200 flex flex-col items-center justify-center gap-1 select-none ${
                                isActive 
                                  ? "bg-[#10b981] border-[#10b981] text-white shadow-sm shadow-emerald-500/20" 
                                  : "bg-zinc-50 border-zinc-200 text-zinc-900 hover:bg-zinc-100 hover:text-zinc-800"
@@ -553,7 +674,7 @@ export default function POSForm({
                      <div>
                         <span className="text-[7.5px] font-bold text-white/50 uppercase tracking-widest block">Total Belanja</span>
                         <span className="text-[9.5px] font-bold text-white/45">
-                           {cart.length} produk
+                           {cart.reduce((sum, item) => sum + item.quantity, 0)} produk
                         </span>
                      </div>
                      <span className="text-xl font-black font-mono text-emerald-400">
@@ -566,11 +687,11 @@ export default function POSForm({
                      <button 
                         disabled={isSubmitting}
                         onClick={() => {
-                          if (editId) {
-                            router.push('/backend/tenant/sales/history');
-                          } else if (cart.length > 0 && confirm("Kosongkan keranjang?")) {
-                            setCart([]);
-                          }
+                           if (editId) {
+                             router.push('/backend/tenant/sales/history');
+                           } else if (cart.length > 0 && confirm("Kosongkan keranjang?")) {
+                             setCart([]);
+                           }
                         }}
                         className="px-3.5 py-2.5 bg-zinc-100 hover:bg-zinc-250 text-zinc-500 hover:text-zinc-700 transition-colors font-bold text-xs rounded-lg border border-zinc-200 disabled:opacity-50"
                      >
@@ -592,161 +713,202 @@ export default function POSForm({
                </div>
             </div>
 
-            {/* RIGHT COLUMN: Product Input & Cart Table List (7 Kolom) */}
+            {/* RIGHT COLUMN: Pilih Produk & Keranjang Belanja */}
             <div className="lg:col-span-7 bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm space-y-4">
                
-               {/* 1. Pilih Produk */}
-               <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-zinc-900 uppercase tracking-widest block pl-0.5">Pilih Produk Ke Keranjang</label>
-                  <div className="flex flex-col sm:flex-row gap-2 items-center">
-                     <div className="relative flex-1 w-full">
-                        <select
-                          value={selectedProductId}
-                          onChange={(e) => setSelectedProductId(e.target.value)}
-                          className="w-full pl-3 pr-8 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-black outline-none focus:bg-white focus:border-[#10b981] transition-all cursor-pointer appearance-none text-black bg-white"
-                        >
-                          <option value="" className="text-black bg-white">-- Cari & Pilih Produk --</option>
-                          {products.map((p) => {
-                            const stock = p.current_branch_stock ?? 0;
-                            const isOutOfStock = stock <= 0;
-                            return (
-                              <option key={p.id} value={p.id} disabled={isOutOfStock} className="text-black bg-white">
-                                {p.name} - {formatCurrency(p.sell_price)} {isOutOfStock ? "(Habis)" : `(Stok: ${stock})`}
-                              </option>
-                            );
-                          })}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+               {/* 1. Pilih Produk Ke Keranjang */}
+               <div>
+                  <h3 className="text-xs font-black text-[#030037] uppercase tracking-widest pl-0.5 mb-2">
+                     Pilih Produk Ke Keranjang
+                  </h3>
+                  
+                  <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                     {/* Dropdown Select Product (Searchable Combobox) */}
+                     <div className="flex-1 min-w-0 relative">
+                        <input
+                           type="text"
+                           placeholder="Ketik untuk mencari produk..."
+                           value={productSearchQuery}
+                           onFocus={() => setShowProductDropdown(true)}
+                           onChange={(e) => {
+                              setProductSearchQuery(e.target.value);
+                              setShowProductDropdown(true);
+                              if (selectedProductId) setSelectedProductId("");
+                           }}
+                           className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-black outline-none focus:bg-white focus:border-[#10b981] transition-all"
+                        />
+                        
+                        {showProductDropdown && (
+                           <>
+                              {/* Overlay Backdrop to close dropdown */}
+                              <div 
+                                 className="fixed inset-0 z-10" 
+                                 onClick={() => setShowProductDropdown(false)}
+                              />
+                              <div className="absolute left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-xl shadow-lg max-h-48 overflow-y-auto z-25 divide-y divide-zinc-100 scrollbar-thin">
+                                 {searchedProducts.length === 0 ? (
+                                    <div className="px-3 py-2 text-xs text-zinc-400 font-bold text-center">
+                                       Produk tidak ditemukan
+                                    </div>
+                                 ) : (
+                                    searchedProducts.map((p) => {
+                                       const stock = p.current_branch_stock ?? 0;
+                                       const isOutOfStock = stock <= 0;
+                                       return (
+                                          <button
+                                             key={p.id}
+                                             type="button"
+                                             disabled={isOutOfStock}
+                                             onClick={() => {
+                                                setSelectedProductId(p.id);
+                                                setProductSearchQuery(p.name);
+                                                setShowProductDropdown(false);
+                                             }}
+                                             className={`w-full px-3 py-2 text-left text-xs font-bold transition-colors flex justify-between items-center ${
+                                                isOutOfStock
+                                                   ? "opacity-45 cursor-not-allowed bg-zinc-50 text-zinc-400"
+                                                   : "hover:bg-[#10b981]/10 text-zinc-900"
+                                             }`}
+                                          >
+                                             <span className="truncate max-w-[200px]">{p.name}</span>
+                                             <span className="shrink-0 text-[10px] font-mono text-emerald-600">
+                                                {formatCurrency(p.sell_price)} (Stok: {stock})
+                                             </span>
+                                          </button>
+                                       );
+                                    })
+                                 )}
+                              </div>
+                           </>
+                        )}
                      </div>
-                     
-                     <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
-                        <div className="flex items-center border border-zinc-200 rounded-lg overflow-hidden h-9 bg-zinc-50">
-                           <button
-                              type="button"
-                              onClick={() => setInputQty(Math.max(1, inputQty - 1))}
-                              className="px-2.5 text-zinc-500 hover:bg-zinc-150 transition-colors"
-                           >
-                              <Minus className="w-3.5 h-3.5" />
-                           </button>
-                           <input
-                              type="number"
-                              min="1"
-                              value={inputQty}
-                              onChange={(e) => setInputQty(Math.max(1, parseInt(e.target.value) || 1))}
-                              className="w-12 text-center text-xs font-bold bg-transparent border-0 focus:ring-0 p-0 text-zinc-900"
-                           />
-                           <button
-                              type="button"
-                              onClick={() => setInputQty(inputQty + 1)}
-                              className="px-2.5 text-zinc-500 hover:bg-zinc-150 transition-colors"
-                           >
-                              <Plus className="w-3.5 h-3.5" />
-                           </button>
-                        </div>
 
+                     {/* Qty Input Controls */}
+                     <div className="flex items-center justify-center gap-1.5 bg-zinc-50 border border-zinc-200 px-2.5 py-1.5 rounded-xl w-32 shrink-0">
                         <button
                            type="button"
-                           onClick={handleAddProductFromSelect}
-                           className="px-4 py-2 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-black uppercase tracking-wider rounded-lg transition-all h-9 flex items-center gap-1"
+                           onClick={() => setInputQty(Math.max(1, inputQty - 1))}
+                           className="p-1 text-zinc-400 hover:text-[#3c39d6] transition-colors"
                         >
-                           <Plus className="w-3.5 h-3.5" /> Tambah
+                           <Minus className="w-3 h-3" />
+                        </button>
+                        <input
+                           type="number"
+                           className="w-10 border-none bg-transparent text-center text-xs font-bold focus:ring-0 p-0 text-black"
+                           value={inputQty}
+                           min={1}
+                           onChange={(e) => setInputQty(Math.max(1, parseInt(e.target.value) || 1))}
+                        />
+                        <button
+                           type="button"
+                           onClick={() => setInputQty(inputQty + 1)}
+                           className="p-1 text-zinc-400 hover:text-[#3c39d6] transition-colors"
+                        >
+                           <Plus className="w-3 h-3" />
                         </button>
                      </div>
+
+                     {/* Tombol Tambah */}
+                     <button
+                        type="button"
+                        onClick={handleAddProductFromSelect}
+                        className="px-4 py-2 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-sm flex items-center justify-center gap-1 shrink-0"
+                     >
+                        <Plus className="w-3.5 h-3.5" /> Tambah
+                     </button>
                   </div>
                </div>
 
-               {/* 2. Keranjang Belanja List Table */}
-               <div className="space-y-1.5">
-                  <div className="flex items-center justify-between border-b border-zinc-100 pb-1.5">
-                     <h4 className="text-[10px] font-black text-zinc-900 uppercase tracking-widest flex items-center gap-1.5">
+               {/* 2. Daftar Keranjang Belanja */}
+               <div className="pt-2 border-t border-zinc-100">
+                  <div className="flex items-center justify-between mb-2">
+                     <h3 className="text-xs font-black text-[#030037] uppercase tracking-widest flex items-center gap-1.5">
                         <ShoppingCart className="w-3.5 h-3.5 text-[#3c39d6]" /> Keranjang Belanja
-                     </h4>
+                     </h3>
                      <span className="text-[9px] font-black bg-[#3c39d6]/10 text-[#3c39d6] px-2 py-0.5 rounded-full">
                         {cart.length} produk terpilih
                      </span>
                   </div>
 
-                  <div className="border border-zinc-150 rounded-xl overflow-hidden shadow-sm bg-zinc-50/30">
+                  <div className="border border-zinc-150 rounded-xl overflow-hidden bg-zinc-50/30 shadow-sm">
                      <div className="max-h-[350px] overflow-y-auto scrollbar-thin">
                         <table className="w-full text-left border-collapse">
-                            <thead>
-                               <tr className="bg-zinc-50 border-b border-zinc-150 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
-                                  <th className="px-3 py-2.5">Produk</th>
-                                  <th className="px-3 py-2.5 text-right">Harga</th>
-                                  <th className="px-3 py-2.5 text-center">Qty</th>
-                                  <th className="px-3 py-2.5 text-right">Subtotal</th>
-                                  <th className="px-3 py-2.5 text-center">Aksi</th>
-                               </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-150">
-                               {cart.length === 0 ? (
-                                  <tr>
-                                     <td colSpan={5} className="py-12 text-center text-zinc-350">
-                                        <ShoppingCart className="w-8 h-8 mx-auto mb-1.5 opacity-40" />
-                                        <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Keranjang masih kosong</p>
-                                     </td>
-                                  </tr>
-                               ) : (
-                                  cart.map((item) => (
-                                     <tr key={item.product.id} className="hover:bg-zinc-100/50 bg-white transition-all text-xs font-bold text-zinc-800">
-                                        <td className="px-3 py-2">
-                                           <div className="truncate max-w-[150px] sm:max-w-[200px]" title={item.product.name}>
-                                              {item.product.name}
-                                           </div>
-                                        </td>
-                                        <td className="px-3 py-2 text-right font-mono text-[11px]">
-                                           {formatCurrency(item.product.sell_price)}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                           <div className="flex items-center justify-center gap-1 bg-zinc-50 border border-zinc-200 px-1 py-0.5 rounded-md w-20 mx-auto">
-                                              <button 
-                                                 type="button"
-                                                 onClick={() => updateQuantity(item.product.id, -1)}
-                                                 className="p-0.5 text-zinc-400 hover:text-[#3c39d6] transition-colors"
-                                               >
-                                                  <Minus className="w-2.5 h-2.5" />
-                                               </button>
-                                               <input 
-                                                 type="text" 
-                                                 className="w-8 border-none bg-transparent text-center text-[11px] font-bold text-zinc-850 focus:ring-0 p-0 text-black"
-                                                 value={item.quantity}
-                                                 onChange={(e) => handleQtyInput(item.product.id, e.target.value)}
-                                               />
-                                               <button 
-                                                  type="button"
-                                                  onClick={() => updateQuantity(item.product.id, 1)}
-                                                  className="p-0.5 text-zinc-400 hover:text-[#3c39d6] transition-colors"
-                                               >
-                                                  <Plus className="w-2.5 h-2.5" />
-                                               </button>
-                                           </div>
-                                        </td>
-                                        <td className="px-3 py-2 text-right font-mono text-[11px] text-emerald-600">
-                                           {formatCurrency(item.product.sell_price * item.quantity)}
-                                        </td>
-                                        <td className="px-3 py-2 text-center">
-                                           <button 
-                                              type="button"
-                                              onClick={() => removeFromCart(item.product.id)}
-                                              className="p-1 text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-100 rounded-md transition-all"
-                                           >
-                                              <Trash2 className="w-3.5 h-3.5" />
-                                           </button>
-                                        </td>
-                                     </tr>
-                                  ))
-                               )}
-                            </tbody>
-                         </table>
-                      </div>
-                   </div>
-                </div>
+                           <thead>
+                              <tr className="bg-zinc-50 border-b border-zinc-150 text-[8px] font-black text-zinc-400 uppercase tracking-widest">
+                                 <th className="px-3 py-2">Produk</th>
+                                 <th className="px-3 py-2 text-right">Harga</th>
+                                 <th className="px-3 py-2 text-center">Qty</th>
+                                 <th className="px-3 py-2 text-right">Subtotal</th>
+                                 <th className="px-3 py-2 text-center">Aksi</th>
+                              </tr>
+                           </thead>
+                           <tbody className="divide-y divide-zinc-150">
+                              {cart.length === 0 ? (
+                                 <tr>
+                                    <td colSpan={5} className="py-16 text-center text-zinc-400 bg-white">
+                                       <ShoppingCart className="w-8 h-8 mx-auto mb-2 opacity-30 text-zinc-400" />
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Keranjang masih kosong</p>
+                                    </td>
+                                 </tr>
+                              ) : (
+                                 cart.map((item) => (
+                                    <tr key={item.product.id} className="hover:bg-zinc-100/50 bg-white transition-all text-xs font-bold text-zinc-800">
+                                       <td className="px-3 py-3.5">
+                                          <div className="truncate max-w-[150px] sm:max-w-[200px]" title={item.product.name}>
+                                             {item.product.name}
+                                          </div>
+                                       </td>
+                                       <td className="px-3 py-3.5 text-right font-mono">
+                                          {formatCurrency(item.product.sell_price)}
+                                       </td>
+                                       <td className="px-3 py-3.5">
+                                          <div className="flex items-center justify-center gap-0.5 bg-zinc-50 border border-zinc-200 px-1 py-0.5 rounded-md w-16 mx-auto">
+                                             <button 
+                                                type="button"
+                                                onClick={() => updateQuantity(item.product.id, -1)}
+                                                className="p-0.5 text-zinc-400 hover:text-[#3c39d6] transition-colors"
+                                             >
+                                                <Minus className="w-2.5 h-2.5" />
+                                             </button>
+                                             <input 
+                                                type="text" 
+                                                className="w-6 border-none bg-transparent text-center text-[10px] font-bold focus:ring-0 p-0 text-black"
+                                                value={item.quantity}
+                                                onChange={(e) => handleQtyInput(item.product.id, e.target.value)}
+                                             />
+                                             <button 
+                                                type="button"
+                                                onClick={() => updateQuantity(item.product.id, 1)}
+                                                className="p-0.5 text-zinc-450 hover:text-[#3c39d6] transition-colors"
+                                             >
+                                                <Plus className="w-2.5 h-2.5" />
+                                             </button>
+                                          </div>
+                                       </td>
+                                       <td className="px-3 py-3.5 text-right font-mono text-emerald-600">
+                                          {formatCurrency(item.product.sell_price * item.quantity)}
+                                       </td>
+                                       <td className="px-3 py-3.5 text-center">
+                                          <button 
+                                             type="button"
+                                             onClick={() => removeFromCart(item.product.id)}
+                                             className="p-1 text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-100 rounded-md transition-all"
+                                          >
+                                             <Trash2 className="w-3 h-3" />
+                                          </button>
+                                       </td>
+                                    </tr>
+                                 ))
+                              )}
+                           </tbody>
+                        </table>
+                     </div>
+                  </div>
+               </div>
 
-             </div>
+            </div>
 
-          </div>
-
-      </div>
+         </div>
 
       {/* Success Modal Receipt */}
       {showReceiptModal && lastTransaction && (
@@ -778,7 +940,9 @@ export default function POSForm({
                     </div>
                     <div className="flex justify-between border-t border-zinc-200/50 pt-2 mt-2 font-black text-sm">
                        <span className="text-zinc-900">Total:</span>
-                       <span className="text-emerald-600">{formatCurrency(cartSubtotal)}</span>
+                       <span className="text-emerald-600">
+                          {formatCurrency(lastTransaction.items ? lastTransaction.items.reduce((sum: number, item: any) => sum + (item.product.sell_price * item.quantity), 0) : 0)}
+                       </span>
                     </div>
                  </div>
 
@@ -786,17 +950,33 @@ export default function POSForm({
                     <div className="flex gap-2">
                        <button 
                           onClick={() => { setShowReceiptModal(false); router.push('/backend/tenant/sales/history'); }}
-                          className="flex-1 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
+                          className="flex-1 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors"
                        >
                           Lihat Riwayat
                        </button>
                        <button 
                           onClick={handlePrintReceipt}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#3c39d6] hover:bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
+                          className="flex-1 flex items-center justify-center gap-1 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 border border-zinc-200 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors"
                        >
-                          <Printer className="w-3.5 h-3.5" /> Cetak Nota
+                          <Printer className="w-3 h-3" /> Cetak PDF
                        </button>
                     </div>
+                    
+                    {isBluetoothSupported ? (
+                       <button 
+                          onClick={handlePrintBluetoothDirect}
+                          disabled={isPrintingBt}
+                          className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[#3c39d6] hover:bg-black disabled:bg-zinc-400 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
+                       >
+                          <Printer className={`w-3.5 h-3.5 ${isPrintingBt ? "animate-pulse" : ""}`} />
+                          {isPrintingBt ? "Menghubungkan Printer..." : "Cetak Bluetooth (Direct)"}
+                       </button>
+                    ) : (
+                       <div className="w-full py-2 bg-amber-50 border border-amber-200 text-amber-800 text-[9px] font-bold text-center rounded-xl px-2">
+                          Printer Bluetooth hanya didukung di Chrome / HTTPS. Gunakan Cetak PDF sebagai alternatif.
+                       </div>
+                    )}
+
                     <button
                        onClick={() => setShowReceiptModal(false)}
                        className="w-full py-2 text-zinc-400 hover:text-zinc-600 text-[10px] font-bold tracking-widest transition-colors"
@@ -808,7 +988,7 @@ export default function POSForm({
            </div>
         </div>
       )}
-
+      </div>
     </div>
   );
 }

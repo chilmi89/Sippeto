@@ -73,21 +73,12 @@ export async function getPOSPageData(editId?: string | null) {
       }
     }
 
-    // Fetch Branches
-    const branches = await prisma.branches.findMany({
-      where: { tenant_id: tenantOwnerId },
-      orderBy: { name: "asc" }
-    });
-
-    let selectedBranchId = "";
-    if (profile.branch_id) {
-      selectedBranchId = profile.branch_id;
-    } else if (branches.length > 0) {
-      selectedBranchId = branches[0].id;
-    }
-
-    // Parallel Fetch (categories, payment methods, transaction categories)
-    const [categories, paymentMethods, txCategories] = await Promise.all([
+    // Fetch Branches, Categories, Payment Methods, and Tx Categories in parallel
+    const [branches, categories, paymentMethods, txCategories] = await Promise.all([
+      prisma.branches.findMany({
+        where: { tenant_id: tenantOwnerId },
+        orderBy: { name: "asc" }
+      }),
       prisma.product_categories.findMany({
         where: { profile_id: tenantOwnerId },
         orderBy: { name: "asc" }
@@ -102,10 +93,16 @@ export async function getPOSPageData(editId?: string | null) {
       })
     ]);
 
-    // Fetch products for selected branch
-    let initialProducts: any[] = [];
-    if (selectedBranchId) {
-      const productsList = await prisma.products.findMany({
+    let selectedBranchId = "";
+    if (profile.branch_id) {
+      selectedBranchId = profile.branch_id;
+    } else if (branches.length > 0) {
+      selectedBranchId = branches[0].id;
+    }
+
+    // Parallel Fetch for Products List and Edit Transaction
+    const [productsList, tx] = await Promise.all([
+      selectedBranchId ? prisma.products.findMany({
         where: {
           profile_id: tenantOwnerId,
           OR: [
@@ -120,56 +117,53 @@ export async function getPOSPageData(editId?: string | null) {
             where: { branch_id: selectedBranchId }
           }
         }
-      });
-
-      initialProducts = productsList.map(prod => {
-        const branchStock = prod.product_stocks[0]?.stock ?? 0;
-        const minStock = prod.product_stocks[0]?.min_stock ?? 0;
-        return {
-          id: prod.id,
-          name: prod.name,
-          sell_price: Number(prod.sell_price),
-          base_price: Number(prod.base_price),
-          image_url: prod.image_url,
-          category_id: prod.category_id,
-          product_categories: prod.product_categories ? { name: prod.product_categories.name } : null,
-          current_branch_stock: branchStock,
-          current_branch_min_stock: minStock
-        };
-      });
-    }
-
-    // Mode Edit: Ambil data transaksi lama
-    let editTransaction = null;
-    if (editId) {
-      const tx = await prisma.transaction_groups.findUnique({
+      }) : Promise.resolve([]),
+      editId ? prisma.transaction_groups.findUnique({
         where: { id: editId },
-        include: {
-          transaction_items: true
-        }
-      });
-      if (tx) {
-        editTransaction = {
-          id: tx.id,
-          reference_number: tx.reference_number,
-          transaction_date: tx.transaction_date ? tx.transaction_date.toISOString() : "",
-          description: tx.description,
-          customer_name: tx.customer_name,
-          customer_phone: tx.customer_phone,
-          customer_address: tx.customer_address,
-          order_status: tx.order_status,
-          branch_id: tx.branch_id,
-          items: tx.transaction_items.map(it => ({
-            id: it.id,
-            name: it.name,
-            amount: Number(it.amount),
-            category_id: it.category_id,
-            payment_method_id: it.payment_method_id,
-            product_id: it.product_id,
-            quantity: it.quantity ? Number(it.quantity) : 1
-          }))
-        };
-      }
+        include: { transaction_items: true }
+      }) : Promise.resolve(null)
+    ]);
+
+    // Format products list
+    const initialProducts = productsList.map(prod => {
+      const branchStock = prod.product_stocks[0]?.stock ?? 0;
+      const minStock = prod.product_stocks[0]?.min_stock ?? 0;
+      return {
+        id: prod.id,
+        name: prod.name,
+        sell_price: Number(prod.sell_price),
+        base_price: Number(prod.base_price),
+        image_url: prod.image_url,
+        category_id: prod.category_id,
+        product_categories: prod.product_categories ? { name: prod.product_categories.name } : null,
+        current_branch_stock: branchStock,
+        current_branch_min_stock: minStock
+      };
+    });
+
+    // Format edit transaction if exists
+    let editTransaction = null;
+    if (tx) {
+      editTransaction = {
+        id: tx.id,
+        reference_number: tx.reference_number,
+        transaction_date: tx.transaction_date ? tx.transaction_date.toISOString() : "",
+        description: tx.description,
+        customer_name: tx.customer_name,
+        customer_phone: tx.customer_phone,
+        customer_address: tx.customer_address,
+        order_status: tx.order_status,
+        branch_id: tx.branch_id,
+        items: tx.transaction_items.map(it => ({
+          id: it.id,
+          name: it.name,
+          amount: Number(it.amount),
+          category_id: it.category_id,
+          payment_method_id: it.payment_method_id,
+          product_id: it.product_id,
+          quantity: it.quantity ? Number(it.quantity) : 1
+        }))
+      };
     }
 
     return {
