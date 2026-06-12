@@ -114,7 +114,7 @@ export const NotificationDropdown = () => {
   };
 
   return (
-    <div ref={dropdownRef} className="relative hidden sm:block">
+    <div ref={dropdownRef} className="relative">
       {/* Bell Button */}
       <button
         onClick={handleToggle}
