@@ -1,9 +1,9 @@
 "use server";
 
-import prisma from "@/lib/prisma";
-import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import prisma from "@/lib/prisma";
 
 // Helper: decode JWT & get profile_id
 async function getProfileId(): Promise<string | null> {
@@ -50,12 +50,12 @@ export async function getProductsPageData() {
             role_permissions: {
               select: {
                 permissions: {
-                  select: { name: true }
-                }
-              }
-            }
-          }
-        }
+                  select: { name: true },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -64,9 +64,10 @@ export async function getProductsPageData() {
     }
 
     // Ekstrak permissions
-    const permissions = profile.roles?.role_permissions?.map(
-      (rp) => rp.permissions?.name || ""
-    ) || [];
+    const permissions =
+      profile.roles?.role_permissions?.map(
+        (rp) => rp.permissions?.name || "",
+      ) || [];
 
     if (!permissions.includes("kelola_produk")) {
       return { status: "forbidden", message: "Akses Ditolak" };
@@ -76,7 +77,7 @@ export async function getProductsPageData() {
     if (profile.branch_id) {
       const branch = await prisma.branches.findUnique({
         where: { id: profile.branch_id },
-        select: { tenant_id: true }
+        select: { tenant_id: true },
       });
       if (branch) {
         tenantOwnerId = branch.tenant_id;
@@ -86,7 +87,7 @@ export async function getProductsPageData() {
     // Fetch Branches
     let branches = await prisma.branches.findMany({
       where: { tenant_id: tenantOwnerId },
-      orderBy: { name: "asc" }
+      orderBy: { name: "asc" },
     });
 
     // Auto-create default branch "Pusat" if owner has 0 branches
@@ -94,48 +95,88 @@ export async function getProductsPageData() {
       const defaultBranch = await prisma.branches.create({
         data: {
           tenant_id: tenantOwnerId,
-          name: "Pusat"
-        }
+          name: "Pusat",
+        },
       });
       branches = [defaultBranch];
     }
 
     // Tentukan filter query produk berdasarkan branch_id user
     const productsWhere: any = {
-      profile_id: tenantOwnerId
+      profile_id: tenantOwnerId,
     };
 
     if (profile.branch_id) {
       productsWhere.OR = [
         { branch_id: null },
-        { branch_id: profile.branch_id }
+        { branch_id: profile.branch_id },
       ];
     }
 
     // Parallel Fetch (Products and Categories)
-    const [productsList, categories] = await Promise.all([
+    let [productsList, categories] = await Promise.all([
       prisma.products.findMany({
         where: productsWhere,
         orderBy: { name: "asc" },
         include: {
           product_categories: true,
           branches: {
-            select: { name: true }
+            select: { name: true },
           },
           product_stocks: {
             include: {
               branches: {
-                select: { name: true }
-              }
-            }
-          }
-        }
+                select: { name: true },
+              },
+            },
+          },
+        },
       }),
       prisma.product_categories.findMany({
-        where: { profile_id: tenantOwnerId },
-        orderBy: { name: "asc" }
-      })
+        where: {
+          OR: [{ profile_id: tenantOwnerId }, { profile_id: null }],
+        },
+        orderBy: { name: "asc" },
+      }),
     ]);
+
+    // Seed default product categories if missing for this tenant
+    const DEFAULT_PRODUCT_CATEGORIES = [
+      "Makanan",
+      "Minuman",
+      "Aksesoris",
+      "Obat & Vitamin",
+      "Jasa / Grooming",
+      "Lain-lain",
+    ];
+
+    const existingCats = await prisma.product_categories.findMany({
+      where: {
+        profile_id: tenantOwnerId,
+        name: { in: DEFAULT_PRODUCT_CATEGORIES },
+      },
+      select: { name: true },
+    });
+    const existingNames = new Set(existingCats.map((c) => c.name));
+    const missingCategories = DEFAULT_PRODUCT_CATEGORIES.filter(
+      (name) => !existingNames.has(name),
+    );
+
+    if (missingCategories.length > 0) {
+      await prisma.product_categories.createMany({
+        data: missingCategories.map((name) => ({
+          profile_id: tenantOwnerId,
+          name,
+        })),
+      });
+
+      categories = await prisma.product_categories.findMany({
+        where: {
+          OR: [{ profile_id: tenantOwnerId }, { profile_id: null }],
+        },
+        orderBy: { name: "asc" },
+      });
+    }
 
     const userBranchId = profile.branch_id;
 
@@ -145,7 +186,9 @@ export async function getProductsPageData() {
       let currentBranchMinStock = 0;
 
       if (userBranchId) {
-        const branchStockInfo = prod.product_stocks.find(s => s.branch_id === userBranchId);
+        const branchStockInfo = prod.product_stocks.find(
+          (s) => s.branch_id === userBranchId,
+        );
         currentBranchStock = branchStockInfo?.stock ?? 0;
         currentBranchMinStock = branchStockInfo?.min_stock ?? 0;
       }
@@ -162,17 +205,19 @@ export async function getProductsPageData() {
         image_url: prod.image_url,
         is_active: prod.is_active ?? true,
         created_at: prod.created_at ? prod.created_at.toISOString() : "",
-        product_categories: prod.product_categories ? { name: prod.product_categories.name } : null,
+        product_categories: prod.product_categories
+          ? { name: prod.product_categories.name }
+          : null,
         branches: prod.branches ? { name: prod.branches.name } : null,
-        product_stocks: prod.product_stocks.map(ps => ({
+        product_stocks: prod.product_stocks.map((ps) => ({
           id: ps.id,
           branch_id: ps.branch_id,
           stock: ps.stock,
           min_stock: ps.min_stock,
-          branches: { name: ps.branches.name }
+          branches: { name: ps.branches.name },
         })),
         current_branch_stock: currentBranchStock,
-        current_branch_min_stock: currentBranchMinStock
+        current_branch_min_stock: currentBranchMinStock,
       };
     });
 
@@ -191,13 +236,12 @@ export async function getProductsPageData() {
         branch_id: profile.branch_id,
         username: profile.username,
         userRole: profile.roles?.name || "",
-        tenant_owner_id: tenantOwnerId
+        tenant_owner_id: tenantOwnerId,
       },
       products: mappedProducts,
-      branches: branches.map(b => ({ id: b.id, name: b.name })),
-      categories: categories.map(c => ({ id: c.id, name: c.name }))
+      branches: branches.map((b) => ({ id: b.id, name: b.name })),
+      categories: categories.map((c) => ({ id: c.id, name: c.name })),
     };
-
   } catch (error) {
     console.error("getProductsPageData error:", error);
     return { status: "error", message: "Gagal memuat data produk" };
@@ -216,7 +260,11 @@ export async function saveProductAction(payload: {
   sell_price: number;
   image_url?: string | null;
   is_active: boolean;
-  branch_stocks?: Array<{ branch_id: string; stock: number; min_stock: number }>;
+  branch_stocks?: Array<{
+    branch_id: string;
+    stock: number;
+    min_stock: number;
+  }>;
 }) {
   try {
     const {
@@ -230,113 +278,124 @@ export async function saveProductAction(payload: {
       sell_price,
       image_url,
       is_active,
-      branch_stocks
+      branch_stocks,
     } = payload;
 
     if (!profile_id || !name) {
-      return { status: "error", message: "Profile ID dan nama produk wajib diisi" };
+      return {
+        status: "error",
+        message: "Profile ID dan nama produk wajib diisi",
+      };
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      if (id) {
-        // Mode UPDATE detail produk
-        const updated = await tx.products.update({
-          where: { id },
-          data: {
-            category_id,
-            name,
-            description: description ?? null,
-            base_price: Number(base_price),
-            sell_price: Number(sell_price),
-            image_url: image_url ?? null,
-            is_active
-          }
-        });
+    const result = await prisma.$transaction(
+      async (tx) => {
+        if (id) {
+          // Mode UPDATE detail produk
+          const updated = await tx.products.update({
+            where: { id },
+            data: {
+              category_id,
+              name,
+              description: description ?? null,
+              base_price: Number(base_price),
+              sell_price: Number(sell_price),
+              image_url: image_url ?? null,
+              is_active,
+            },
+          });
 
-        // Update stok cabang jika diberikan
-        if (branch_stocks && branch_stocks.length > 0) {
-          for (const stockInfo of branch_stocks) {
-            const existingStock = await tx.product_stocks.findFirst({
-              where: { product_id: id, branch_id: stockInfo.branch_id }
+          // Update stok cabang jika diberikan
+          if (branch_stocks && branch_stocks.length > 0) {
+            for (const stockInfo of branch_stocks) {
+              const existingStock = await tx.product_stocks.findFirst({
+                where: { product_id: id, branch_id: stockInfo.branch_id },
+              });
+
+              if (existingStock) {
+                await tx.product_stocks.update({
+                  where: { id: existingStock.id },
+                  data: {
+                    stock: stockInfo.stock,
+                    min_stock: stockInfo.min_stock,
+                  },
+                });
+              } else {
+                await tx.product_stocks.create({
+                  data: {
+                    product_id: id,
+                    branch_id: stockInfo.branch_id,
+                    stock: stockInfo.stock,
+                    min_stock: stockInfo.min_stock,
+                  },
+                });
+              }
+            }
+          }
+
+          return updated;
+        } else {
+          // Mode CREATE produk baru
+          const newProduct = await tx.products.create({
+            data: {
+              profile_id,
+              branch_id,
+              category_id,
+              name,
+              description: description ?? null,
+              base_price: Number(base_price),
+              sell_price: Number(sell_price),
+              image_url: image_url ?? null,
+              is_active,
+            },
+          });
+
+          if (branch_id) {
+            // Produk lokal cabang
+            await tx.product_stocks.create({
+              data: {
+                product_id: newProduct.id,
+                branch_id: branch_id,
+                stock: 0,
+                min_stock: 0,
+              },
+            });
+          } else {
+            // Produk pusat: inisialisasi di semua cabang dengan input stok jika ada
+            const branches = await tx.branches.findMany({
+              where: { tenant_id: profile_id },
             });
 
-            if (existingStock) {
-              await tx.product_stocks.update({
-                where: { id: existingStock.id },
-                data: {
-                  stock: stockInfo.stock,
-                  min_stock: stockInfo.min_stock
-                }
-              });
-            } else {
-              await tx.product_stocks.create({
-                data: {
-                  product_id: id,
-                  branch_id: stockInfo.branch_id,
-                  stock: stockInfo.stock,
-                  min_stock: stockInfo.min_stock
-                }
-              });
-            }
-          }
-        }
-
-        return updated;
-      } else {
-        // Mode CREATE produk baru
-        const newProduct = await tx.products.create({
-          data: {
-            profile_id,
-            branch_id,
-            category_id,
-            name,
-            description: description ?? null,
-            base_price: Number(base_price),
-            sell_price: Number(sell_price),
-            image_url: image_url ?? null,
-            is_active
-          }
-        });
-
-        if (branch_id) {
-          // Produk lokal cabang
-          await tx.product_stocks.create({
-            data: {
-              product_id: newProduct.id,
-              branch_id: branch_id,
-              stock: 0,
-              min_stock: 0
-            }
-          });
-        } else {
-          // Produk pusat: inisialisasi di semua cabang dengan input stok jika ada
-          const branches = await tx.branches.findMany({
-            where: { tenant_id: profile_id }
-          });
-
-          if (branches.length > 0) {
-            for (const branch of branches) {
-              const stockInfo = branch_stocks?.find(s => s.branch_id === branch.id);
-              await tx.product_stocks.create({
-                data: {
+            if (branches.length > 0) {
+              const stockRecords = branches.map((branch) => {
+                const stockInfo = branch_stocks?.find(
+                  (s) => s.branch_id === branch.id,
+                );
+                return {
                   product_id: newProduct.id,
                   branch_id: branch.id,
                   stock: stockInfo ? stockInfo.stock : 0,
-                  min_stock: stockInfo ? stockInfo.min_stock : 0
-                }
+                  min_stock: stockInfo ? stockInfo.min_stock : 0,
+                };
+              });
+
+              await tx.product_stocks.createMany({
+                data: stockRecords,
               });
             }
           }
-        }
 
-        return newProduct;
-      }
-    });
+          return newProduct;
+        }
+      },
+      {
+        timeout: 20000,
+      },
+    );
 
     revalidatePath("/backend/tenant/products");
     revalidatePath("/backend/tenant/stocks");
     return { status: "success", data: { id: result.id, name: result.name } };
-
   } catch (error) {
     console.error("saveProductAction error:", error);
     return { status: "error", message: "Gagal menyimpan data produk" };
@@ -349,15 +408,15 @@ export async function deleteProductAction(id: string) {
     await prisma.$transaction(async (tx) => {
       // Hapus stok terkait secara otomatis jika relasi tidak cascade
       await tx.product_stocks.deleteMany({
-        where: { product_id: id }
+        where: { product_id: id },
       });
       // Hapus mutasi stok terkait
       await tx.stock_mutations.deleteMany({
-        where: { product_id: id }
+        where: { product_id: id },
       });
       // Hapus produk
       await tx.products.delete({
-        where: { id }
+        where: { id },
       });
     });
 

@@ -223,3 +223,17 @@ Error in connector: Error querying the database: FATAL: (EMAXCONNSESSION) max cl
 2026-06-11T16:09:34.613Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
 2026-06-11T18:27:38.603Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
 2026-06-11T18:27:39.831Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-12T01:48:56.565Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-12T01:48:58.757Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-12T02:10:25.333Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-12T02:10:30.090Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-12T02:16:12.786Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-12T02:16:14.626Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-12T02:17:15.072Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-12T02:17:16.644Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-12T08:48:12.156Z - GET branches called with id=undefined, tenant_id=0c518ec4-b623-4503-8639-8cd17bb63339
+2026-06-15T07:55:13.928Z - GET branches called with id=undefined, tenant_id=72e40e41-44b4-4ae8-ae1f-e585d8447ab9
+2026-06-15T08:13:00.819Z - GET branches called with id=undefined, tenant_id=72e40e41-44b4-4ae8-ae1f-e585d8447ab9
+2026-06-15T08:13:15.693Z - GET branches called with id=undefined, tenant_id=72e40e41-44b4-4ae8-ae1f-e585d8447ab9
+2026-06-15T08:18:40.366Z - GET branches called with id=undefined, tenant_id=72e40e41-44b4-4ae8-ae1f-e585d8447ab9
+2026-06-15T08:18:53.218Z - GET branches called with id=undefined, tenant_id=72e40e41-44b4-4ae8-ae1f-e585d8447ab9
