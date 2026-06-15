@@ -134,6 +134,39 @@ export async function getPOSPageData(editId?: string | null) {
       });
     }
 
+    // Seed default payment methods if missing for this tenant
+    const DEFAULT_PAYMENTS = [
+      "Tunai / Cash",
+      "Transfer Bank",
+      "E-Wallet (OVO/Dana)",
+    ];
+
+    const existingPayments = await prisma.payment_methods.findMany({
+      where: {
+        profile_id: tenantOwnerId,
+        name: { in: DEFAULT_PAYMENTS },
+      },
+      select: { name: true },
+    });
+    const existingPaymentNames = new Set(existingPayments.map((p) => p.name));
+    const missingPayments = DEFAULT_PAYMENTS.filter(
+      (name) => !existingPaymentNames.has(name),
+    );
+
+    if (missingPayments.length > 0) {
+      await prisma.payment_methods.createMany({
+        data: missingPayments.map((name) => ({
+          profile_id: tenantOwnerId,
+          name,
+        })),
+      });
+
+      paymentMethods = await prisma.payment_methods.findMany({
+        where: { profile_id: tenantOwnerId },
+        orderBy: { name: "asc" },
+      });
+    }
+
     let selectedBranchId = "";
     if (profile.branch_id) {
       selectedBranchId = profile.branch_id;
