@@ -1,9 +1,9 @@
 "use server";
 
-import prisma from "@/lib/prisma";
-import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import prisma from "@/lib/prisma";
 
 // Helper: decode JWT & get profile_id
 async function getProfileId(): Promise<string | null> {
@@ -53,8 +53,8 @@ export async function getPOSPageData(editId?: string | null) {
         branch_id: true,
         username: true,
         roles: {
-          select: { name: true }
-        }
+          select: { name: true },
+        },
       },
     });
 
@@ -66,7 +66,7 @@ export async function getPOSPageData(editId?: string | null) {
     if (profile.branch_id) {
       const branch = await prisma.branches.findUnique({
         where: { id: profile.branch_id },
-        select: { tenant_id: true }
+        select: { tenant_id: true },
       });
       if (branch) {
         tenantOwnerId = branch.tenant_id;
@@ -74,24 +74,65 @@ export async function getPOSPageData(editId?: string | null) {
     }
 
     // Fetch Branches, Categories, Payment Methods, and Tx Categories in parallel
-    const [branches, categories, paymentMethods, txCategories] = await Promise.all([
-      prisma.branches.findMany({
-        where: { tenant_id: tenantOwnerId },
-        orderBy: { name: "asc" }
-      }),
-      prisma.product_categories.findMany({
-        where: { profile_id: tenantOwnerId },
-        orderBy: { name: "asc" }
-      }),
-      prisma.payment_methods.findMany({
-        where: { profile_id: tenantOwnerId },
-        orderBy: { name: "asc" }
-      }),
-      prisma.categories.findMany({
-        where: { profile_id: tenantOwnerId },
-        orderBy: { name: "asc" }
-      })
-    ]);
+    let [branches, categories, paymentMethods, txCategories] =
+      await Promise.all([
+        prisma.branches.findMany({
+          where: { tenant_id: tenantOwnerId },
+          orderBy: { name: "asc" },
+        }),
+        prisma.product_categories.findMany({
+          where: {
+            OR: [{ profile_id: tenantOwnerId }, { profile_id: null }],
+          },
+          orderBy: { name: "asc" },
+        }),
+        prisma.payment_methods.findMany({
+          where: { profile_id: tenantOwnerId },
+          orderBy: { name: "asc" },
+        }),
+        prisma.categories.findMany({
+          where: { profile_id: tenantOwnerId },
+          orderBy: { name: "asc" },
+        }),
+      ]);
+
+    // Seed default product categories if missing for this tenant
+    const DEFAULT_PRODUCT_CATEGORIES = [
+      "Makanan",
+      "Minuman",
+      "Aksesoris",
+      "Obat & Vitamin",
+      "Jasa / Grooming",
+      "Lain-lain",
+    ];
+
+    const existingCats = await prisma.product_categories.findMany({
+      where: {
+        profile_id: tenantOwnerId,
+        name: { in: DEFAULT_PRODUCT_CATEGORIES },
+      },
+      select: { name: true },
+    });
+    const existingNames = new Set(existingCats.map((c) => c.name));
+    const missingCategories = DEFAULT_PRODUCT_CATEGORIES.filter(
+      (name) => !existingNames.has(name),
+    );
+
+    if (missingCategories.length > 0) {
+      await prisma.product_categories.createMany({
+        data: missingCategories.map((name) => ({
+          profile_id: tenantOwnerId,
+          name,
+        })),
+      });
+
+      categories = await prisma.product_categories.findMany({
+        where: {
+          OR: [{ profile_id: tenantOwnerId }, { profile_id: null }],
+        },
+        orderBy: { name: "asc" },
+      });
+    }
 
     let selectedBranchId = "";
     if (profile.branch_id) {
@@ -102,30 +143,31 @@ export async function getPOSPageData(editId?: string | null) {
 
     // Parallel Fetch for Products List and Edit Transaction
     const [productsList, tx] = await Promise.all([
-      selectedBranchId ? prisma.products.findMany({
-        where: {
-          profile_id: tenantOwnerId,
-          OR: [
-            { branch_id: null },
-            { branch_id: selectedBranchId }
-          ]
-        },
-        orderBy: { name: "asc" },
-        include: {
-          product_categories: true,
-          product_stocks: {
-            where: { branch_id: selectedBranchId }
-          }
-        }
-      }) : Promise.resolve([]),
-      editId ? prisma.transaction_groups.findUnique({
-        where: { id: editId },
-        include: { transaction_items: true }
-      }) : Promise.resolve(null)
+      selectedBranchId
+        ? prisma.products.findMany({
+            where: {
+              profile_id: tenantOwnerId,
+              OR: [{ branch_id: null }, { branch_id: selectedBranchId }],
+            },
+            orderBy: { name: "asc" },
+            include: {
+              product_categories: true,
+              product_stocks: {
+                where: { branch_id: selectedBranchId },
+              },
+            },
+          })
+        : Promise.resolve([]),
+      editId
+        ? prisma.transaction_groups.findUnique({
+            where: { id: editId },
+            include: { transaction_items: true },
+          })
+        : Promise.resolve(null),
     ]);
 
     // Format products list
-    const initialProducts = productsList.map(prod => {
+    const initialProducts = productsList.map((prod) => {
       const branchStock = prod.product_stocks[0]?.stock ?? 0;
       const minStock = prod.product_stocks[0]?.min_stock ?? 0;
       return {
@@ -135,9 +177,11 @@ export async function getPOSPageData(editId?: string | null) {
         base_price: Number(prod.base_price),
         image_url: prod.image_url,
         category_id: prod.category_id,
-        product_categories: prod.product_categories ? { name: prod.product_categories.name } : null,
+        product_categories: prod.product_categories
+          ? { name: prod.product_categories.name }
+          : null,
         current_branch_stock: branchStock,
-        current_branch_min_stock: minStock
+        current_branch_min_stock: minStock,
       };
     });
 
@@ -147,22 +191,24 @@ export async function getPOSPageData(editId?: string | null) {
       editTransaction = {
         id: tx.id,
         reference_number: tx.reference_number,
-        transaction_date: tx.transaction_date ? tx.transaction_date.toISOString() : "",
+        transaction_date: tx.transaction_date
+          ? tx.transaction_date.toISOString()
+          : "",
         description: tx.description,
         customer_name: tx.customer_name,
         customer_phone: tx.customer_phone,
         customer_address: tx.customer_address,
         order_status: tx.order_status,
         branch_id: tx.branch_id,
-        items: tx.transaction_items.map(it => ({
+        items: tx.transaction_items.map((it) => ({
           id: it.id,
           name: it.name,
           amount: Number(it.amount),
           category_id: it.category_id,
           payment_method_id: it.payment_method_id,
           product_id: it.product_id,
-          quantity: it.quantity ? Number(it.quantity) : 1
-        }))
+          quantity: it.quantity ? Number(it.quantity) : 1,
+        })),
       };
     }
 
@@ -183,45 +229,55 @@ export async function getPOSPageData(editId?: string | null) {
         branch_id: profile.branch_id,
         userBranchId: profile.branch_id,
         userRole: profile.roles?.name || "",
-        tenant_owner_id: tenantOwnerId
+        tenant_owner_id: tenantOwnerId,
       },
-      branches: branches.map(b => ({ id: b.id, name: b.name })),
-      categories: categories.map(c => ({ id: c.id, name: c.name })),
-      paymentMethods: paymentMethods.map(pm => ({ id: pm.id, name: pm.name })),
-      txCategories: txCategories.map(tc => ({ id: tc.id, name: tc.name, type: tc.type })),
+      branches: branches.map((b) => ({ id: b.id, name: b.name })),
+      categories: categories.map((c) => ({ id: c.id, name: c.name })),
+      paymentMethods: paymentMethods.map((pm) => ({
+        id: pm.id,
+        name: pm.name,
+      })),
+      txCategories: txCategories.map((tc) => ({
+        id: tc.id,
+        name: tc.name,
+        type: tc.type,
+      })),
       initialProducts,
       initialBranchId: selectedBranchId,
-      editTransaction
+      editTransaction,
     };
   } catch (error: any) {
     console.error("getPOSPageData error:", error);
-    return { status: "error", message: `Gagal memuat konfigurasi kasir: ${error.message || error}` };
+    return {
+      status: "error",
+      message: `Gagal memuat konfigurasi kasir: ${error.message || error}`,
+    };
   }
 }
 
 // 2. Fetch Products for a branch
-export async function getPOSProductsAction(tenantOwnerId: string, branchId: string) {
+export async function getPOSProductsAction(
+  tenantOwnerId: string,
+  branchId: string,
+) {
   try {
     const productsList = await prisma.products.findMany({
       where: {
         profile_id: tenantOwnerId,
-        OR: [
-          { branch_id: null },
-          { branch_id: branchId }
-        ]
+        OR: [{ branch_id: null }, { branch_id: branchId }],
       },
       orderBy: { name: "asc" },
       include: {
         product_categories: true,
         product_stocks: {
-          where: { branch_id: branchId }
-        }
-      }
+          where: { branch_id: branchId },
+        },
+      },
     });
 
     return {
       status: "success",
-      data: productsList.map(prod => {
+      data: productsList.map((prod) => {
         const branchStock = prod.product_stocks[0]?.stock ?? 0;
         const minStock = prod.product_stocks[0]?.min_stock ?? 0;
         return {
@@ -231,11 +287,13 @@ export async function getPOSProductsAction(tenantOwnerId: string, branchId: stri
           base_price: Number(prod.base_price),
           image_url: prod.image_url,
           category_id: prod.category_id,
-          product_categories: prod.product_categories ? { name: prod.product_categories.name } : null,
+          product_categories: prod.product_categories
+            ? { name: prod.product_categories.name }
+            : null,
           current_branch_stock: branchStock,
-          current_branch_min_stock: minStock
+          current_branch_min_stock: minStock,
         };
-      })
+      }),
     };
   } catch (error) {
     console.error("getPOSProductsAction error:", error);
@@ -277,7 +335,7 @@ export async function savePOSTransactionAction(payload: {
       customer_phone,
       customer_address,
       order_status,
-      items
+      items,
     } = payload;
 
     if (!profile_id) {
@@ -295,164 +353,173 @@ export async function savePOSTransactionAction(payload: {
 
     const net_balance = total_income - total_expense;
 
-    const result = await prisma.$transaction(async (tx) => {
-      if (id) {
-        // Mode UPDATE: Ambil transaksi lama
-        const existingGroup = await tx.transaction_groups.findUnique({
-          where: { id },
-          include: { transaction_items: true }
-        });
+    const result = await prisma.$transaction(
+      async (tx) => {
+        if (id) {
+          // Mode UPDATE: Ambil transaksi lama
+          const existingGroup = await tx.transaction_groups.findUnique({
+            where: { id },
+            include: { transaction_items: true },
+          });
 
-        if (!existingGroup) {
-          throw new Error("Transaksi tidak ditemukan");
-        }
+          if (!existingGroup) {
+            throw new Error("Transaksi tidak ditemukan");
+          }
 
-        // 1. Revert stok lama (jika status lunas = 6 dan ada branch_id)
-        if (existingGroup.order_status === 6 && existingGroup.branch_id) {
-          for (const item of existingGroup.transaction_items) {
-            if (item.product_id) {
-              const qty = item.quantity ? Number(item.quantity) : 1;
-              await tx.product_stocks.updateMany({
-                where: {
-                  product_id: item.product_id,
-                  branch_id: existingGroup.branch_id
-                },
-                data: { stock: { increment: qty } }
-              });
-              await tx.stock_mutations.create({
-                data: {
-                  product_id: item.product_id,
-                  from_branch_id: null,
-                  to_branch_id: existingGroup.branch_id,
-                  quantity: qty,
-                  type: "ADJUSTMENT",
-                  notes: `Reversal Edit POS (Koreksi) - Nota #${existingGroup.reference_number || existingGroup.id.slice(0, 8)}`
-                }
-              });
+          // 1. Revert stok lama (jika status lunas = 6 dan ada branch_id)
+          if (existingGroup.order_status === 6 && existingGroup.branch_id) {
+            for (const item of existingGroup.transaction_items) {
+              if (item.product_id) {
+                const qty = item.quantity ? Number(item.quantity) : 1;
+                await tx.product_stocks.updateMany({
+                  where: {
+                    product_id: item.product_id,
+                    branch_id: existingGroup.branch_id,
+                  },
+                  data: { stock: { increment: qty } },
+                });
+                await tx.stock_mutations.create({
+                  data: {
+                    product_id: item.product_id,
+                    from_branch_id: null,
+                    to_branch_id: existingGroup.branch_id,
+                    quantity: qty,
+                    type: "ADJUSTMENT",
+                    notes: `Reversal Edit POS (Koreksi) - Nota #${existingGroup.reference_number || existingGroup.id.slice(0, 8)}`,
+                  },
+                });
+              }
             }
           }
-        }
 
-        // Hapus items lama
-        await tx.transaction_items.deleteMany({ where: { group_id: id } });
+          // Hapus items lama
+          await tx.transaction_items.deleteMany({ where: { group_id: id } });
 
-        // Update group dan re-create items baru
-        const group = await tx.transaction_groups.update({
-          where: { id },
-          data: {
-            branch_id,
-            reference_number,
-            transaction_date: transaction_date ? new Date(transaction_date) : undefined,
-            description,
-            total_income,
-            total_expense,
-            net_balance,
-            customer_name,
-            customer_phone: customer_phone ?? null,
-            customer_address: customer_address ?? null,
-            order_status,
-            transaction_items: {
-              create: items.map(it => ({
-                name: it.name,
-                amount: it.amount,
-                category_id: it.category_id,
-                payment_method_id: it.payment_method_id,
-                type: mapType(it.type),
-                product_id: it.product_id,
-                quantity: it.quantity
-              }))
-            }
-          },
-          include: { transaction_items: true }
-        });
+          // Update group dan re-create items baru
+          const group = await tx.transaction_groups.update({
+            where: { id },
+            data: {
+              branch_id,
+              reference_number,
+              transaction_date: transaction_date
+                ? new Date(transaction_date)
+                : undefined,
+              description,
+              total_income,
+              total_expense,
+              net_balance,
+              customer_name,
+              customer_phone: customer_phone ?? null,
+              customer_address: customer_address ?? null,
+              order_status,
+              transaction_items: {
+                create: items.map((it) => ({
+                  name: it.name,
+                  amount: it.amount,
+                  category_id: it.category_id,
+                  payment_method_id: it.payment_method_id,
+                  type: mapType(it.type),
+                  product_id: it.product_id,
+                  quantity: it.quantity,
+                })),
+              },
+            },
+            include: { transaction_items: true },
+          });
 
-        // 2. Potong stok baru jika status lunas = 6 dan ada branch_id
-        if (order_status === 6 && branch_id) {
-          for (const item of items) {
-            if (item.product_id) {
-              const qty = item.quantity;
-              await tx.product_stocks.updateMany({
-                where: {
-                  product_id: item.product_id,
-                  branch_id: branch_id
-                },
-                data: { stock: { decrement: qty } }
-              });
-              await tx.stock_mutations.create({
-                data: {
-                  product_id: item.product_id,
-                  from_branch_id: branch_id,
-                  to_branch_id: null,
-                  quantity: qty,
-                  type: "SALE",
-                  notes: `Penjualan POS Kasir (Koreksi) - Nota #${reference_number || group.reference_number || group.id.slice(0, 8)}`
-                }
-              });
-            }
-          }
-        }
-
-        return group;
-      } else {
-        // Mode CREATE baru
-        const group = await tx.transaction_groups.create({
-          data: {
-            profile_id,
-            branch_id,
-            reference_number,
-            transaction_date: transaction_date ? new Date(transaction_date) : undefined,
-            description,
-            total_income,
-            total_expense,
-            net_balance,
-            customer_name,
-            customer_phone: customer_phone ?? null,
-            customer_address: customer_address ?? null,
-            order_status,
-            transaction_items: {
-              create: items.map(it => ({
-                name: it.name,
-                amount: it.amount,
-                category_id: it.category_id,
-                payment_method_id: it.payment_method_id,
-                type: mapType(it.type),
-                product_id: it.product_id,
-                quantity: it.quantity
-              }))
-            }
-          },
-          include: { transaction_items: true }
-        });
-
-        // Potong stok jika status lunas = 6
-        if (order_status === 6 && branch_id) {
-          for (const item of items) {
-            if (item.product_id) {
-              const qty = item.quantity;
-              await tx.product_stocks.updateMany({
-                where: {
-                  product_id: item.product_id,
-                  branch_id: branch_id
-                },
-                data: { stock: { decrement: qty } }
-              });
-              await tx.stock_mutations.create({
-                data: {
-                  product_id: item.product_id,
-                  from_branch_id: branch_id,
-                  to_branch_id: null,
-                  quantity: qty,
-                  type: "SALE",
-                  notes: `Penjualan POS Kasir - Nota #${reference_number || group.reference_number || group.id.slice(0, 8)}`
-                }
-              });
+          // 2. Potong stok baru jika status lunas = 6 dan ada branch_id
+          if (order_status === 6 && branch_id) {
+            for (const item of items) {
+              if (item.product_id) {
+                const qty = item.quantity;
+                await tx.product_stocks.updateMany({
+                  where: {
+                    product_id: item.product_id,
+                    branch_id: branch_id,
+                  },
+                  data: { stock: { decrement: qty } },
+                });
+                await tx.stock_mutations.create({
+                  data: {
+                    product_id: item.product_id,
+                    from_branch_id: branch_id,
+                    to_branch_id: null,
+                    quantity: qty,
+                    type: "SALE",
+                    notes: `Penjualan POS Kasir (Koreksi) - Nota #${reference_number || group.reference_number || group.id.slice(0, 8)}`,
+                  },
+                });
+              }
             }
           }
-        }
 
-        return group;
-      }
-    });
+          return group;
+        } else {
+          // Mode CREATE baru
+          const group = await tx.transaction_groups.create({
+            data: {
+              profile_id,
+              branch_id,
+              reference_number,
+              transaction_date: transaction_date
+                ? new Date(transaction_date)
+                : undefined,
+              description,
+              total_income,
+              total_expense,
+              net_balance,
+              customer_name,
+              customer_phone: customer_phone ?? null,
+              customer_address: customer_address ?? null,
+              order_status,
+              transaction_items: {
+                create: items.map((it) => ({
+                  name: it.name,
+                  amount: it.amount,
+                  category_id: it.category_id,
+                  payment_method_id: it.payment_method_id,
+                  type: mapType(it.type),
+                  product_id: it.product_id,
+                  quantity: it.quantity,
+                })),
+              },
+            },
+            include: { transaction_items: true },
+          });
+
+          // Potong stok jika status lunas = 6
+          if (order_status === 6 && branch_id) {
+            for (const item of items) {
+              if (item.product_id) {
+                const qty = item.quantity;
+                await tx.product_stocks.updateMany({
+                  where: {
+                    product_id: item.product_id,
+                    branch_id: branch_id,
+                  },
+                  data: { stock: { decrement: qty } },
+                });
+                await tx.stock_mutations.create({
+                  data: {
+                    product_id: item.product_id,
+                    from_branch_id: branch_id,
+                    to_branch_id: null,
+                    quantity: qty,
+                    type: "SALE",
+                    notes: `Penjualan POS Kasir - Nota #${reference_number || group.reference_number || group.id.slice(0, 8)}`,
+                  },
+                });
+              }
+            }
+          }
+
+          return group;
+        }
+      },
+      {
+        timeout: 20000,
+      },
+    );
 
     revalidatePath("/backend/tenant/sales");
     revalidatePath("/backend/tenant/sales/history");
@@ -462,12 +529,16 @@ export async function savePOSTransactionAction(payload: {
         id: result.id,
         reference_number: result.reference_number,
         transaction_date: result.transaction_date?.toISOString(),
-        customer_name: result.customer_name
-      }
+        customer_name: result.customer_name,
+      },
     };
   } catch (error) {
     console.error("savePOSTransactionAction error:", error);
-    return { status: "error", message: error instanceof Error ? error.message : "Gagal memproses transaksi" };
+    return {
+      status: "error",
+      message:
+        error instanceof Error ? error.message : "Gagal memproses transaksi",
+    };
   }
 }
 
@@ -501,8 +572,8 @@ export async function getSalesHistoryPageData(payload: {
         updated_at: true,
         branch_id: true,
         username: true,
-        roles: { select: { name: true } }
-      }
+        roles: { select: { name: true } },
+      },
     });
 
     if (!profile) {
@@ -513,7 +584,7 @@ export async function getSalesHistoryPageData(payload: {
     if (profile.branch_id) {
       const branch = await prisma.branches.findUnique({
         where: { id: profile.branch_id },
-        select: { tenant_id: true }
+        select: { tenant_id: true },
       });
       if (branch) {
         tenantOwnerId = branch.tenant_id;
@@ -531,21 +602,21 @@ export async function getSalesHistoryPageData(payload: {
       profile_id: tenantOwnerId,
       transaction_items: {
         some: {
-          product_id: { not: null }
-        }
+          product_id: { not: null },
+        },
       },
       ...(search && {
         OR: [
           { reference_number: { contains: search, mode: "insensitive" } },
-          { customer_name: { contains: search, mode: "insensitive" } }
-        ]
+          { customer_name: { contains: search, mode: "insensitive" } },
+        ],
       }),
       ...((date_start || date_end) && {
         transaction_date: {
           ...(date_start && { gte: new Date(date_start) }),
-          ...(date_end && { lte: new Date(date_end) })
-        }
-      })
+          ...(date_end && { lte: new Date(date_end) }),
+        },
+      }),
     };
 
     const [total, data] = await Promise.all([
@@ -559,11 +630,11 @@ export async function getSalesHistoryPageData(payload: {
           transaction_items: {
             include: {
               categories: true,
-              payment_methods: true
-            }
-          }
-        }
-      })
+              payment_methods: true,
+            },
+          },
+        },
+      }),
     ]);
 
     // Aggregate stats (totalRevenue, totalItems)
@@ -573,31 +644,44 @@ export async function getSalesHistoryPageData(payload: {
         total_income: true,
         transaction_items: {
           select: {
-            quantity: true
-          }
-        }
-      }
+            quantity: true,
+          },
+        },
+      },
     });
 
-    const totalRevenue = allMatchingGroups.reduce((sum, g) => sum + Number(g.total_income || 0), 0);
-    const totalItems = allMatchingGroups.reduce((sum, g) => 
-      sum + g.transaction_items.reduce((s, i) => s + (i.quantity ? Number(i.quantity) : 1), 0)
-    , 0);
+    const totalRevenue = allMatchingGroups.reduce(
+      (sum, g) => sum + Number(g.total_income || 0),
+      0,
+    );
+    const totalItems = allMatchingGroups.reduce(
+      (sum, g) =>
+        sum +
+        g.transaction_items.reduce(
+          (s, i) => s + (i.quantity ? Number(i.quantity) : 1),
+          0,
+        ),
+      0,
+    );
 
     return {
       status: "success",
       businessName: profile.business_name || "SiPetto UMKM",
-      data: data.map(tx => ({
+      data: data.map((tx) => ({
         id: tx.id,
         reference_number: tx.reference_number,
-        transaction_date: tx.transaction_date ? tx.transaction_date.toISOString() : new Date().toISOString(),
+        transaction_date: tx.transaction_date
+          ? tx.transaction_date.toISOString()
+          : new Date().toISOString(),
         total_income: Number(tx.total_income || 0),
         description: tx.description,
         customer_name: tx.customer_name,
-        created_at: tx.created_at ? tx.created_at.toISOString() : new Date().toISOString(),
+        created_at: tx.created_at
+          ? tx.created_at.toISOString()
+          : new Date().toISOString(),
         branch_id: tx.branch_id,
         order_status: tx.order_status,
-        transaction_items: tx.transaction_items.map(it => ({
+        transaction_items: tx.transaction_items.map((it) => ({
           id: it.id,
           name: it.name,
           amount: Number(it.amount),
@@ -605,15 +689,17 @@ export async function getSalesHistoryPageData(payload: {
           product_id: it.product_id,
           payment_method_id: it.payment_method_id,
           categories: it.categories ? { name: it.categories.name } : null,
-          payment_methods: it.payment_methods ? { name: it.payment_methods.name } : null
-        }))
+          payment_methods: it.payment_methods
+            ? { name: it.payment_methods.name }
+            : null,
+        })),
       })),
       total,
       totalPages: Math.ceil(total / limit),
       stats: {
         totalRevenue,
-        totalItems
-      }
+        totalItems,
+      },
     };
   } catch (error) {
     console.error("getSalesHistoryPageData error:", error);
@@ -627,7 +713,7 @@ export async function deleteSalesTransactionAction(id: string) {
     await prisma.$transaction(async (tx) => {
       const existingGroup = await tx.transaction_groups.findUnique({
         where: { id },
-        include: { transaction_items: true }
+        include: { transaction_items: true },
       });
 
       if (existingGroup) {
@@ -639,9 +725,9 @@ export async function deleteSalesTransactionAction(id: string) {
               await tx.product_stocks.updateMany({
                 where: {
                   product_id: item.product_id,
-                  branch_id: existingGroup.branch_id
+                  branch_id: existingGroup.branch_id,
                 },
-                data: { stock: { increment: qty } }
+                data: { stock: { increment: qty } },
               });
               await tx.stock_mutations.create({
                 data: {
@@ -650,15 +736,15 @@ export async function deleteSalesTransactionAction(id: string) {
                   to_branch_id: existingGroup.branch_id,
                   quantity: qty,
                   type: "ADJUSTMENT",
-                  notes: `Reversal Hapus POS - Nota #${existingGroup.reference_number || existingGroup.id.slice(0, 8)}`
-                }
+                  notes: `Reversal Hapus POS - Nota #${existingGroup.reference_number || existingGroup.id.slice(0, 8)}`,
+                },
               });
             }
           }
         }
 
         await tx.transaction_groups.delete({
-          where: { id }
+          where: { id },
         });
       }
     });
